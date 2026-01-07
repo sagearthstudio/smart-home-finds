@@ -1,14 +1,14 @@
 const CONFIG = {
   brandName: "Smart Home Finds",
   links: {
-    pinterest: "https://www.pinterest.com/",
+    pinterest: "https://www.pinterest.com/SmartlifeSmartIdeas/",
     instagram: "https://www.instagram.com/",
-    linktree: "https://linktr.ee/",
-    shop: "https://www.amazon.com/",
+    linktree: "https://linktr.ee/sagearthstudio",
+    shop: "https://www.amazon.com/"
   },
 
-  // 🔴 CHANGE THIS to your real repo
-  addProductIssueUrl: "https://github.com/<YOUR_USER>/<YOUR_REPO>/issues/new?template=add-product.yml",
+  // ✅ URL GIUSTO: GitHub repo issues template
+  addProductIssueUrl: "https://github.com/sagearthstudio/smart-home-finds/issues/new?template=add-product.yml",
 
   dataUrl: "data/products.json",
   categories: ["All","Candles","Wall Art","Furniture","Gifts","Accessories","Kitchen","Bathroom","Other"]
@@ -19,7 +19,7 @@ let state = {
   filtered: [],
   query: "",
   category: "All",
-  sort: "newest",
+  sort: "newest"
 };
 
 const els = {
@@ -37,7 +37,7 @@ const els = {
   disclosureBtn: document.getElementById("disclosureBtn"),
   disclosurePanel: document.getElementById("disclosurePanel"),
   sortNewest: document.getElementById("sortNewest"),
-  sortAZ: document.getElementById("sortAZ"),
+  sortAZ: document.getElementById("sortAZ")
 };
 
 function setTopLinks(){
@@ -49,12 +49,12 @@ function setTopLinks(){
   if (els.btnAddProduct) {
     els.btnAddProduct.href = CONFIG.addProductIssueUrl;
 
-    // If still placeholder, warn user on click
+    // blocca link errati tipo "/issues/new" su GitHub Pages
     els.btnAddProduct.addEventListener("click", (e) => {
       const href = els.btnAddProduct.getAttribute("href") || "";
-      if (href.includes("<YOUR_USER>") || href.includes("<YOUR_REPO>")) {
+      if (!href.startsWith("https://github.com/")) {
         e.preventDefault();
-        alert("⚠️ You must set CONFIG.addProductIssueUrl in assets/js/app.js (replace <YOUR_USER>/<YOUR_REPO> with your real repo).");
+        alert("⚠️ Add Product link must point to https://github.com/... (not a relative /issues/new link).");
       }
     });
   }
@@ -221,7 +221,6 @@ function init(){
       update();
     });
   }
-
   if (els.sortAZ) {
     els.sortAZ.addEventListener("click", () => {
       state.sort = "az";
