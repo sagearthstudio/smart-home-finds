@@ -1,0 +1,9 @@
+{
+  "name": "Smart Home Finds",
+  "short_name": "SmartHomeFinds",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#15141c",
+  "theme_color": "#14121a",
+  "icons": []
+}
