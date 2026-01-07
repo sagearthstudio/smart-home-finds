@@ -1,0 +1,69 @@
+name: Add Product
+description: Add a new product to the Smart Home Finds webapp (appears automatically on the site).
+title: "Product: <short title here>"
+labels: ["product"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ✅ After you submit this form, the product will show up automatically on the website (it loads products from GitHub Issues).
+        
+        Tip: If you use a **pin.it** short link, also paste an **Image URL** (preferably i.pinimg.com) so the card can show the photo.
+
+  - type: input
+    id: pin_url
+    attributes:
+      label: Pinterest Pin URL
+      description: Paste the Pin link (example: https://pin.it/xxxx or https://www.pinterest.com/pin/xxxx)
+      placeholder: https://pin.it/xxxxxxxx
+    validations:
+      required: true
+
+  - type: input
+    id: destination_url
+    attributes:
+      label: Destination / Affiliate URL (optional)
+      description: Where the user should land (Amazon affiliate link, shop page, etc.)
+      placeholder: https://amzn.to/xxxxxxx
+
+  - type: input
+    id: image_url
+    attributes:
+      label: Image URL (optional)
+      description: Direct image URL (best: i.pinimg.com/...jpg). This makes the card look great.
+      placeholder: https://i.pinimg.com/...jpg
+
+  - type: input
+    id: custom_title
+    attributes:
+      label: Title (optional)
+      description: If empty, the issue title will be used.
+      placeholder: Cozy Candle Warmer Lamp (Timer + Dimmable)
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Candles
+        - Wall Art
+        - Furniture
+        - Gifts
+        - Accessories
+        - Kitchen
+        - Bathroom
+    validations:
+      required: true
+
+  - type: input
+    id: tags
+    attributes:
+      label: Tags (comma separated)
+      description: Examples: cozy, minimalist, gift idea, farmhouse
+      placeholder: cozy, minimalist, gift idea
+
+  - type: markdown
+    attributes:
+      value: |
+        --- 
+        If you need help finding the **Image URL** from Pinterest: open the pin image in a new tab → copy the i.pinimg.com URL.
