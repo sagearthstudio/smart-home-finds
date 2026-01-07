@@ -1,14 +1,16 @@
 {
-  "products": [
+  "version": 1,
+  "updatedAt": "2026-01-07T00:00:00.000Z",
+  "items": [
     {
-      "id": 1700000000,
-      "title": "Candle Warmer Lamp with Timer (Dimmable)",
-      "description": "Cozy, flame-free ambiance with adjustable brightness — a perfect gift for moms, friends, and new homes.",
+      "id": "p-0001",
+      "title": "GODONLIF Candle Warmer Lamp (Timer + Dimmable)",
+      "pinUrl": "",
+      "url": "",
+      "image": "",
       "category": "Candles",
-      "pinUrl": "https://www.pinterest.com/",
-      "buyUrl": "https://www.amazon.com/",
-      "imageUrl": "https://images.unsplash.com/photo-1543198126-a8ad8e47fb22?auto=format&fit=crop&w=1200&q=70",
-      "tags": ["cozy", "gift idea", "warm light"]
+      "tags": ["candlewarmer", "homedecor", "giftideas"],
+      "createdAt": "2026-01-07T00:00:00.000Z"
     }
   ]
 }
