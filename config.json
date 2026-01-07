@@ -1,0 +1,19 @@
+{
+  "brand": "Smart Home Finds",
+  "tagline": "Cozy • Elegant • Minimal — curated home decor & smart upgrades.",
+  "logoText": "SHF",
+  "owner": "sagearthstudio",
+  "repo": "smart-home-finds",
+  "defaultCategory": "All",
+  "social": {
+    "pinterest": "https://www.pinterest.com/",
+    "instagram": "https://www.instagram.com/",
+    "linktree": "https://linktr.ee/"
+  },
+  "shopPageUrl": "#products",
+  "affiliateDisclosure": "Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.",
+  "categories": ["All", "Candles", "Wall Art", "Furniture", "Gifts", "Accessories", "Kitchen", "Bathroom"],
+  "issueLabel": "product",
+  "cacheMinutes": 10,
+  "maxItems": 200
+}
