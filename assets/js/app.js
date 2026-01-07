@@ -7,7 +7,7 @@ const CONFIG = {
     shop: "https://www.amazon.com/",
   },
   // IMPORTANT: replace with your repo URL once created
-  addProductIssueUrl: "https://github.com/<YOUR_USER>/<YOUR_REPO>/issues/new?template=add-product.yml",
+  addProductIssueUrl: "https://sagearthstudio.github.io/smart-home-finds/",
   dataUrl: "data/products.json",
   categories: ["All","Candles","Wall Art","Furniture","Gifts","Accessories","Kitchen","Bathroom","Other"]
 };
