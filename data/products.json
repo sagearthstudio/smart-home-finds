@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "id": 1700000000,
+      "title": "Candle Warmer Lamp with Timer (Dimmable)",
+      "description": "Cozy, flame-free ambiance with adjustable brightness — a perfect gift for moms, friends, and new homes.",
+      "category": "Candles",
+      "pinUrl": "https://www.pinterest.com/",
+      "buyUrl": "https://www.amazon.com/",
+      "imageUrl": "https://images.unsplash.com/photo-1543198126-a8ad8e47fb22?auto=format&fit=crop&w=1200&q=70",
+      "tags": ["cozy", "gift idea", "warm light"]
+    }
+  ]
+}
