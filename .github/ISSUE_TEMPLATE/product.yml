@@ -1,22 +1,12 @@
 name: "➕ Add Product"
 description: "Add a new product to Smart Home Finds (Pinterest + Affiliate link + image)."
-title: "Add product: "
+title: "Product: "
 labels: ["product"]
-assignees: []
 body:
-  - type: markdown
-    attributes:
-      value: |
-        ## Add a new product to Smart Home Finds
-        Fill in the fields below.  
-        ✅ Tip: If you only have one image, paste it in **Image URL**.  
-        ✅ If you have multiple images, paste extra links in **Extra Image URLs** (one per line).
-
   - type: input
     id: pin_url
     attributes:
-      label: "Pinterest Pin URL (required)"
-      description: "Paste the Pinterest Pin link (pin.it or pinterest.com/pin/...)"
+      label: "Pinterest Pin URL"
       placeholder: "https://pin.it/xxxxxxxx"
     validations:
       required: true
@@ -25,7 +15,6 @@ body:
     id: destination_url
     attributes:
       label: "Destination / Affiliate URL (optional)"
-      description: "Where the user should land (Amazon/Store/Linktree page)."
       placeholder: "https://amzn.to/xxxxxxx"
     validations:
       required: false
@@ -34,37 +23,7 @@ body:
     id: image_url
     attributes:
       label: "Image URL (optional)"
-      description: "Direct image link (recommended: i.pinimg.com/...jpg)."
-      placeholder: "https://i.pinimg.com/originals/...jpg"
-    validations:
-      required: false
-
-  - type: textarea
-    id: extra_images
-    attributes:
-      label: "Extra Image URLs (optional)"
-      description: "Add more image links (one per line)."
-      placeholder: |
-        https://i.pinimg.com/...1.jpg
-        https://i.pinimg.com/...2.jpg
-    validations:
-      required: false
-
-  - type: input
-    id: title
-    attributes:
-      label: "Product Title (optional)"
-      description: "If empty, the webapp can fallback to issue title."
-      placeholder: "Set of 2 Metal Wall Sconce Candle Holders"
-    validations:
-      required: false
-
-  - type: textarea
-    id: description
-    attributes:
-      label: "Short Description / Notes (optional)"
-      description: "1–3 lines that summarize why it’s good."
-      placeholder: "Elegant wall decor, set of 2, perfect for living room / bathroom."
+      placeholder: "https://i.pinimg.com/...jpg"
     validations:
       required: false
 
@@ -72,20 +31,19 @@ body:
     id: category
     attributes:
       label: "Category"
-      description: "Choose one category for filtering in the webapp."
       options:
-        - "Candles"
-        - "Wall Art"
-        - "Furniture"
-        - "Lighting"
-        - "Gifts"
-        - "Accessories"
-        - "Kitchen"
-        - "Bathroom"
-        - "Storage"
-        - "Smart Home"
-        - "Outdoor"
-        - "Other"
+        - Candles
+        - Wall Art
+        - Furniture
+        - Lighting
+        - Gifts
+        - Accessories
+        - Kitchen
+        - Bathroom
+        - Storage
+        - Smart Home
+        - Outdoor
+        - Other
     validations:
       required: true
 
@@ -93,43 +51,14 @@ body:
     id: tags
     attributes:
       label: "Tags (comma separated)"
-      description: "Used for search. Example: modern, minimalist, cozy, farmhouse"
       placeholder: "modern, minimalist, cozy"
     validations:
       required: false
 
-  - type: dropdown
-    id: market
+  - type: textarea
+    id: notes
     attributes:
-      label: "Target Market"
-      description: "Optional, helps you track US vs UK links."
-      options:
-        - "US"
-        - "UK"
-        - "EU/Other"
+      label: "Short Notes (optional)"
+      placeholder: "Why it’s good / where to use it…"
     validations:
       required: false
-
-  - type: input
-    id: price
-    attributes:
-      label: "Price (optional)"
-      description: "Optional note (e.g., $29.99)."
-      placeholder: "$29.99"
-    validations:
-      required: false
-
-  - type: checkboxes
-    id: disclosure
-    attributes:
-      label: "Affiliate Disclosure"
-      description: "Required if you add affiliate links."
-      options:
-        - label: "I understand this may contain affiliate links and the site should show a disclosure."
-          required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        ✅ When you submit this issue, it will be labeled **product** automatically.  
-        Your webapp can fetch products by reading issues with label `product`.
