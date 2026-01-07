@@ -6,14 +6,14 @@
   "repo": "smart-home-finds",
   "defaultCategory": "All",
   "social": {
-    "pinterest": "https://www.pinterest.com/",
+    "pinterest": "https://www.pinterest.com/SmartlifeSmartIdeas",
     "instagram": "https://www.instagram.com/",
     "linktree": "https://linktr.ee/"
   },
   "shopPageUrl": "#products",
   "affiliateDisclosure": "Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.",
-  "categories": ["All", "Candles", "Wall Art", "Furniture", "Gifts", "Accessories", "Kitchen", "Bathroom"],
+  "categories": ["All", "Candles", "Wall Art", "Furniture", "Lighting", "Gifts", "Accessories", "Kitchen", "Bathroom", "Storage", "Smart Home", "Outdoor", "Other"],
   "issueLabel": "product",
   "cacheMinutes": 10,
-  "maxItems": 200
+  "maxItems": 100
 }
