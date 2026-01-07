@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Smart Home Finds</title>
+  <meta name="description" content="Cozy • Elegant • Minimal — curated home decor & smart upgrades." />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://api.github.com" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__top">
+      <div class="brand">
+        <div class="brand__logo" aria-hidden="true"><span id="logoText">SHF</span></div>
+        <div class="brand__text">
+          <h1 id="brandName">Smart Home Finds</h1>
+          <p id="brandTagline">Cozy • Elegant • Minimal — curated home decor & smart upgrades.</p>
+        </div>
+      </div>
+
+      <div class="hero__actions">
+        <a class="pill pill--primary" id="btnPinterest" target="_blank" rel="noopener">Pinterest</a>
+        <a class="pill" id="btnInstagram" target="_blank" rel="noopener">Instagram</a>
+        <a class="pill" id="btnLinktree" target="_blank" rel="noopener">Linktree</a>
+        <a class="pill pill--ghost" id="btnShop" href="#products">Shop Page</a>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="Search finds (e.g., candles, tray, wall art)..." autocomplete="off" />
+      </div>
+
+      <div class="chips" id="categoryChips" aria-label="Categories"></div>
+
+      <div class="toolbar">
+        <button class="btn" id="btnRefresh" type="button" title="Refresh products">⟳ Refresh</button>
+        <a class="btn btn--primary" id="btnAddProduct" target="_blank" rel="noopener" title="Add a new product">+ Add Product</a>
+        <button class="btn btn--ghost" id="btnDisclosure" type="button" aria-expanded="false">Disclosure</button>
+      </div>
+
+      <div class="disclosure" id="disclosureBox" hidden>
+        <p id="disclosureText">Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.</p>
+      </div>
+
+      <div class="status">
+        <span id="statusText">Loading products…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="products">
+    <section class="grid" id="productGrid" aria-live="polite"></section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <span>© <span id="year"></span> <span id="brandNameFooter">Smart Home Finds</span></span>
+      <span class="dot">•</span>
+      <a href="privacy.html">Privacy</a>
+      <span class="dot">•</span>
+      <a href="https://github.com/" target="_blank" rel="noopener">Powered by GitHub Pages</a>
+    </div>
+  </footer>
+
+  <template id="cardTemplate">
+    <article class="card">
+      <a class="card__media" target="_blank" rel="noopener">
+        <img class="card__img" loading="lazy" alt="" />
+        <span class="badge"></span>
+      </a>
+      <div class="card__body">
+        <h3 class="card__title"></h3>
+        <div class="card__tags"></div>
+        <div class="card__actions">
+          <a class="link" target="_blank" rel="noopener">Open</a>
+          <a class="link link--muted" target="_blank" rel="noopener">Pin</a>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
