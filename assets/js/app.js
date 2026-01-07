@@ -6,8 +6,10 @@ const CONFIG = {
     linktree: "https://linktr.ee/",
     shop: "https://www.amazon.com/",
   },
-  // IMPORTANT: replace with your repo URL once created
-  addProductIssueUrl: "https://sagearthstudio.github.io/smart-home-finds/",
+
+  // 🔴 CHANGE THIS to your real repo
+  addProductIssueUrl: "https://github.com/<YOUR_USER>/<YOUR_REPO>/issues/new?template=add-product.yml",
+
   dataUrl: "data/products.json",
   categories: ["All","Candles","Wall Art","Furniture","Gifts","Accessories","Kitchen","Bathroom","Other"]
 };
@@ -17,7 +19,7 @@ let state = {
   filtered: [],
   query: "",
   category: "All",
-  sort: "newest", // newest | az
+  sort: "newest",
 };
 
 const els = {
@@ -39,14 +41,27 @@ const els = {
 };
 
 function setTopLinks(){
-  els.btnPinterest.href = CONFIG.links.pinterest;
-  els.btnInstagram.href = CONFIG.links.instagram;
-  els.btnLinktree.href = CONFIG.links.linktree;
-  els.btnShop.href = CONFIG.links.shop;
-  els.btnAddProduct.href = CONFIG.addProductIssueUrl;
+  if (els.btnPinterest) els.btnPinterest.href = CONFIG.links.pinterest;
+  if (els.btnInstagram) els.btnInstagram.href = CONFIG.links.instagram;
+  if (els.btnLinktree) els.btnLinktree.href = CONFIG.links.linktree;
+  if (els.btnShop) els.btnShop.href = CONFIG.links.shop;
+
+  if (els.btnAddProduct) {
+    els.btnAddProduct.href = CONFIG.addProductIssueUrl;
+
+    // If still placeholder, warn user on click
+    els.btnAddProduct.addEventListener("click", (e) => {
+      const href = els.btnAddProduct.getAttribute("href") || "";
+      if (href.includes("<YOUR_USER>") || href.includes("<YOUR_REPO>")) {
+        e.preventDefault();
+        alert("⚠️ You must set CONFIG.addProductIssueUrl in assets/js/app.js (replace <YOUR_USER>/<YOUR_REPO> with your real repo).");
+      }
+    });
+  }
 }
 
 function buildChips(){
+  if (!els.chips) return;
   els.chips.innerHTML = "";
   CONFIG.categories.forEach(cat => {
     const b = document.createElement("button");
@@ -62,6 +77,7 @@ function buildChips(){
 }
 
 function highlightChips(){
+  if (!els.chips) return;
   [...els.chips.children].forEach(btn => {
     btn.classList.toggle("active", btn.textContent === state.category);
   });
@@ -91,11 +107,9 @@ function applyFilters(){
     });
   }
 
-  // sorting
   if(state.sort === "az"){
     list.sort((a,b) => norm(a.title).localeCompare(norm(b.title)));
   } else {
-    // newest first by id (timestamp) fallback to 0
     list.sort((a,b) => (b.id||0) - (a.id||0));
   }
 
@@ -103,21 +117,29 @@ function applyFilters(){
 }
 
 function safeUrl(u){
-  if(!u) return "";
-  return u;
+  return u ? u : "";
+}
+
+function escapeHtml(str){
+  return (str || "").replace(/[&<>"']/g, (m) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
 }
 
 function render(){
+  if (!els.grid) return;
   els.grid.innerHTML = "";
   const list = state.filtered;
 
-  els.resultsCount.textContent = `${list.length} item${list.length === 1 ? "" : "s"}`;
+  if (els.resultsCount) {
+    els.resultsCount.textContent = `${list.length} item${list.length === 1 ? "" : "s"}`;
+  }
 
   if(list.length === 0){
-    els.empty.hidden = false;
+    if (els.empty) els.empty.hidden = false;
     return;
   }
-  els.empty.hidden = true;
+  if (els.empty) els.empty.hidden = true;
 
   list.forEach(p => {
     const card = document.createElement("article");
@@ -158,12 +180,6 @@ function render(){
   });
 }
 
-function escapeHtml(str){
-  return (str || "").replace(/[&<>"']/g, (m) => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
-
 function update(){
   applyFilters();
   render();
@@ -171,7 +187,7 @@ function update(){
 
 async function loadProducts(){
   const res = await fetch(CONFIG.dataUrl, { cache: "no-store" });
-  if(!res.ok) throw new Error("Failed to load products.json");
+  if(!res.ok) throw new Error("Failed to load data/products.json");
   const json = await res.json();
   const products = (json && json.products) ? json.products : [];
   state.products = products;
@@ -179,30 +195,39 @@ async function loadProducts(){
 }
 
 function init(){
-  els.year.textContent = new Date().getFullYear();
+  if (els.year) els.year.textContent = new Date().getFullYear();
 
   setTopLinks();
   buildChips();
 
-  els.searchInput.addEventListener("input", (e) => {
-    state.query = e.target.value;
-    update();
-  });
+  if (els.searchInput) {
+    els.searchInput.addEventListener("input", (e) => {
+      state.query = e.target.value;
+      update();
+    });
+  }
 
-  els.disclosureBtn.addEventListener("click", () => {
-    const expanded = els.disclosureBtn.getAttribute("aria-expanded") === "true";
-    els.disclosureBtn.setAttribute("aria-expanded", String(!expanded));
-    els.disclosurePanel.hidden = expanded;
-  });
+  if (els.disclosureBtn && els.disclosurePanel) {
+    els.disclosureBtn.addEventListener("click", () => {
+      const expanded = els.disclosureBtn.getAttribute("aria-expanded") === "true";
+      els.disclosureBtn.setAttribute("aria-expanded", String(!expanded));
+      els.disclosurePanel.hidden = expanded;
+    });
+  }
 
-  els.sortNewest.addEventListener("click", () => {
-    state.sort = "newest";
-    update();
-  });
-  els.sortAZ.addEventListener("click", () => {
-    state.sort = "az";
-    update();
-  });
+  if (els.sortNewest) {
+    els.sortNewest.addEventListener("click", () => {
+      state.sort = "newest";
+      update();
+    });
+  }
+
+  if (els.sortAZ) {
+    els.sortAZ.addEventListener("click", () => {
+      state.sort = "az";
+      update();
+    });
+  }
 
   loadProducts().catch(err => {
     console.error(err);
