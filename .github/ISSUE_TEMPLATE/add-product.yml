@@ -1,0 +1,64 @@
+name: "Add Product"
+description: "Add a new product to Smart Home Finds"
+title: "Add product: "
+labels: ["add-product"]
+body:
+  - type: input
+    id: pin_url
+    attributes:
+      label: Pinterest Pin URL
+      description: Paste the Pinterest Pin link
+      placeholder: https://www.pinterest.com/pin/...
+    validations:
+      required: true
+
+  - type: input
+    id: buy_url
+    attributes:
+      label: Destination / Affiliate URL (optional)
+      description: Paste the Amazon (or other) product link you want users to open
+      placeholder: https://amzn.to/...
+    validations:
+      required: false
+
+  - type: input
+    id: image_url
+    attributes:
+      label: Image URL (optional)
+      description: If Pinterest blocks auto-detection, paste the main image URL here (often i.pinimg.com/...)
+      placeholder: https://i.pinimg.com/originals/....
+    validations:
+      required: false
+
+  - type: input
+    id: title
+    attributes:
+      label: Title (optional)
+      description: If empty, we try to auto-detect from the Pin page
+      placeholder: Cozy Candle Warmer Lamp with Timer
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Candles
+        - Wall Art
+        - Furniture
+        - Gifts
+        - Accessories
+        - Kitchen
+        - Bathroom
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: tags
+    attributes:
+      label: Tags (comma separated)
+      placeholder: cozy, neutral decor, gift idea
+    validations:
+      required: false
