@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Smart Home Finds — cozy, elegant & minimal home decor finds." />
+  <meta name="theme-color" content="#0f0f12" />
+  <meta property="og:title" content="Smart Home Finds" />
+  <meta property="og:description" content="Cozy, elegant & minimal home decor finds. Shop my favorites." />
+  <meta property="og:type" content="website" />
+  <title>Smart Home Finds</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="bg">
+    <div class="glow g1"></div>
+    <div class="glow g2"></div>
+    <div class="glow g3"></div>
+  </div>
+
+  <header class="wrap header">
+    <div class="brand">
+      <div class="logo">SHF</div>
+      <div class="brandText">
+        <h1>Smart Home Finds</h1>
+        <p>Cozy • Elegant • Minimal — curated home decor & smart upgrades.</p>
+      </div>
+    </div>
+
+    <div class="ctaRow">
+      <a class="btn primary" id="btnPinterest" target="_blank" rel="noopener">Pinterest</a>
+      <a class="btn" id="btnInstagram" target="_blank" rel="noopener">Instagram</a>
+      <a class="btn" id="btnLinktree" target="_blank" rel="noopener">Linktree</a>
+      <a class="btn" id="btnStore" target="_blank" rel="noopener">Shop Page</a>
+    </div>
+
+    <div class="bar">
+      <div class="search">
+        <input id="q" type="search" placeholder="Search finds (e.g., candles, tray, wall art)..." />
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="disclosure">
+      <span class="badge">Disclosure</span>
+      <span>Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="grid" id="grid"></section>
+
+    <footer class="footer">
+      <p>
+        © <span id="year"></span> Smart Home Finds • Built with ❤️ on GitHub Pages
+      </p>
+    </footer>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <button class="x" id="close" aria-label="Close">✕</button>
+
+      <div class="mMedia">
+        <img id="mImg" alt="" />
+      </div>
+
+      <div class="mBody">
+        <h2 id="mTitle"></h2>
+        <p id="mDesc"></p>
+
+        <div class="mMeta" id="mTags"></div>
+
+        <div class="mActions">
+          <a class="btn primary" id="mShop" target="_blank" rel="noopener">Shop</a>
+          <button class="btn" id="mCopy">Copy caption</button>
+        </div>
+
+        <p class="hint" id="mHint"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
