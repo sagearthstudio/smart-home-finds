@@ -3,87 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0b0f1a" />
+  <meta name="theme-color" content="#14121a" />
+  <meta name="description" content="Smart Home Finds — Cozy • Elegant • Minimal home decor & smart upgrades." />
   <title>Smart Home Finds</title>
-  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
+
 <body>
-  <div class="bg">
-    <div class="bg-blur"></div>
-    <div class="container">
-      <header class="top">
-        <div class="brand">
-          <div class="logo">
-            <span>SHF</span>
-          </div>
-          <div class="brand-text">
-            <h1>Smart Home Finds</h1>
-            <p>Cozy • Elegant • Minimal — curated home decor & smart upgrades.</p>
-          </div>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="avatar" aria-hidden="true">SHF</div>
+        <div class="brandText">
+          <h1>Smart Home Finds</h1>
+          <p class="subtitle">Cozy • Elegant • Minimal — curated home decor & smart upgrades.</p>
         </div>
+      </div>
 
-        <nav class="quick-links">
-          <a class="pill pill-primary" id="btnPinterest" href="https://www.pinterest.com/SmartlifeSmartIdeas/" target="_blank" rel="noopener">Pinterest</a>
-          <a class="pill" id="btnInstagram" href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a>
-          <a class="pill" id="btnLinktree" href="https://linktr.ee/sagearthstudio" target="_blank" rel="noopener">Linktree</a>
-          <a class="pill" id="btnShop" href="https://www.amazon.com/" target="_blank" rel="noopener">Shop Page</a>
+      <div class="btnRow">
+        <a class="pill pillPrimary" href="#" id="btnPinterest">Pinterest</a>
+        <a class="pill" href="#" id="btnInstagram">Instagram</a>
+        <a class="pill" href="#" id="btnLinktree">Linktree</a>
+        <a class="pill" href="#" id="btnShop">Shop Page</a>
+      </div>
 
-          <!-- ✅ FALLBACK CORRETTO: apre il form issue su GitHub -->
-          <a
-            class="pill pill-ghost"
-            id="btnAddProduct"
-            href="https://github.com/sagearthstudio/smart-home-finds/issues/new?template=add-product.yml"
-            target="_blank"
-            rel="noopener"
-          >+ Add Product</a>
-        </nav>
-      </header>
+      <div class="controls">
+        <button class="pill pillGhost" id="addProductBtn" type="button">+ Add Product</button>
+        <button class="pill pillGhost" id="refreshBtn" type="button">↻ Refresh</button>
+      </div>
 
-      <main class="main">
-        <section class="controls">
-          <div class="search-wrap">
-            <input id="searchInput" class="search" type="search"
-              placeholder="Search finds (e.g., candles, tray, wall art)..." autocomplete="off" />
-          </div>
+      <div class="searchRow">
+        <input id="searchInput" type="search" placeholder="Search finds (e.g., candles, tray, wall art)..." autocomplete="off" />
+      </div>
 
-          <div class="chips" id="categoryChips"></div>
+      <div class="chipRow" id="categoryChips" aria-label="Categories"></div>
 
-          <button class="disclosure" id="disclosureBtn" type="button" aria-expanded="false">
-            Disclosure
-          </button>
+      <div class="disclosure">
+        <span class="disclosureBadge">Disclosure</span>
+        <span>Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.</span>
+      </div>
+    </header>
 
-          <div class="disclosure-panel" id="disclosurePanel" hidden>
-            <p>
-              Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.
-            </p>
-          </div>
-        </section>
+    <section class="grid" id="productGrid" aria-label="Products"></section>
 
-        <section class="grid-head">
-          <div class="grid-title">
-            <h2>Curated Finds</h2>
-            <span class="muted" id="resultsCount">—</span>
-          </div>
-          <div class="grid-actions">
-            <button class="btn" id="sortNewest">Newest</button>
-            <button class="btn" id="sortAZ">A–Z</button>
-          </div>
-        </section>
+    <footer class="footer">
+      <span>© <span id="year"></span> Smart Home Finds</span>
+      <span class="dot">•</span>
+      <a href="#" id="clearCacheLink">Force update (clear cache)</a>
+    </footer>
+  </main>
 
-        <section class="grid" id="productsGrid"></section>
-
-        <section class="empty" id="emptyState" hidden>
-          <h3>No matches found</h3>
-          <p>Try a different keyword or category.</p>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <p>© <span id="year"></span> Smart Home Finds • Built on GitHub Pages</p>
-      </footer>
-    </div>
-  </div>
-
-  <script src="assets/js/app.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    // Service worker (safe) — helps performance but won’t block product updates.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
 </body>
 </html>
