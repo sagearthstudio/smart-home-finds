@@ -1,24 +1,31 @@
-# Smart Home Finds — GitHub Pages Hub
+# Smart Home Finds (GitHub Pages Webapp)
 
-This is a simple “link-in-bio + mini catalog” hub for Pinterest + Instagram.
+A lightweight, mobile-first hub to collect and browse Pinterest Pins and product links (affiliate-friendly),
+hosted on GitHub Pages.
 
-## How to publish
-1) Upload files to the repo root:
-- index.html
-- styles.css
-- app.js
-- products.json
+## Features
+- Products loaded from `data/products.json`
+- Search + category filters + sorting
+- Disclosure section
+- “Add Product” button opens a GitHub Issue form
+- GitHub Action updates `data/products.json` automatically when an Issue is opened
 
-2) GitHub → Settings → Pages
-- Source: Deploy from a branch
-- Branch: main / (root)
-Save
+## Setup (Important)
+1. Edit `assets/js/app.js` and set:
+   - `CONFIG.links.*` (Pinterest/Instagram/Linktree/Shop)
+   - `CONFIG.addProductIssueUrl` to:
+     `https://github.com/<YOUR_USER>/<YOUR_REPO>/issues/new?template=add-product.yml`
 
-Your site will be live at:
-https://YOURUSERNAME.github.io/REPO/
+2. Enable GitHub Actions write permissions:
+   - Repo → Settings → Actions → General
+   - Workflow permissions → **Read and write permissions** → Save
 
-## Add products
-Edit `products.json` → add items in the array.
+3. Enable GitHub Pages:
+   - Repo → Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: main / root
 
-Tip: Use `#item-id` links for pins:
-https://YOURUSERNAME.github.io/REPO/#candle-warmer-lamp
+## Add a product
+- Open the site, tap **+ Add Product**
+- Fill the form (Pin URL required; add Image URL if Pinterest blocks)
+- Submit → Action updates `data/products.json` → site updates.
