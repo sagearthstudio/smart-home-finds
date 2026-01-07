@@ -1,0 +1,41 @@
+{
+  "profile": {
+    "pinterest": "https://www.pinterest.com/SmartlifeSmartIdeas/",
+    "instagram": "https://www.instagram.com/",
+    "linktree": "https://linktr.ee/",
+    "shopPage": "https://www.amazon.com/"
+  },
+  "categories": ["All", "Candles", "Wall Art", "Furniture", "Gifts", "Accessories", "Kitchen", "Bathroom"],
+  "items": [
+    {
+      "id": "candle-warmer-lamp",
+      "title": "Candle Warmer Lamp (Timer + Dimmable)",
+      "category": "Candles",
+      "kicker": "Cozy Glow",
+      "image": "https://images-na.ssl-images-amazon.com/images/I/71ioZasMKmL._AC_SL1500_.jpg",
+      "description": "Flame-free way to enjoy jar candles. Timer + dimmable settings for bedrooms, living rooms, and gift ideas.",
+      "tags": ["gift-ready", "flame-free", "cozy"],
+      "shopUrl": "https://www.amazon.com/"
+    },
+    {
+      "id": "abstract-thinker-statue",
+      "title": "Abstract Thinker Statue (Sandstone Resin)",
+      "category": "Accessories",
+      "kicker": "Modern Accent",
+      "image": "https://images-na.ssl-images-amazon.com/images/I/61ZfucIXqnL._AC_SL1500_.jpg",
+      "description": "A calming abstract piece that adds modern character without clutter—perfect for shelves and entryways.",
+      "tags": ["minimal", "housewarming", "neutral"],
+      "shopUrl": "https://www.amazon.com/"
+    },
+    {
+      "id": "farmhouse-console-table",
+      "title": "Farmhouse 2-Tier Console Table",
+      "category": "Furniture",
+      "kicker": "Entryway",
+      "image": "https://images-na.ssl-images-amazon.com/images/I/91g9PwnPc4L._AC_SL1500_.jpg",
+      "description": "Long and narrow profile—perfect behind couch, hallway, or foyer. Great for baskets, books, candles.",
+      "tags": ["farmhouse", "storage", "styling"],
+      "shopUrl": "https://www.amazon.com/"
+    }
+  ]
+}
