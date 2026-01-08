@@ -419,11 +419,11 @@ h1{
 .modal__body{
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* spazio extra sotto per non finire sotto barra browser / tastiera */
+  /* extra space so buttons don't hide behind browser bar / keyboard */
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
-/* rende la riga dei bottoni sempre visibile in basso mentre scorri */
+/* keep action row visible while scrolling */
 .modal__body .row{
   position: sticky;
   bottom: 0;
@@ -432,13 +432,10 @@ h1{
   margin-top: 12px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-
-  /* fallback elegante se non hai variabili CSS */
   background: rgba(10, 12, 18, 0.78);
   border-top: 1px solid rgba(255,255,255,0.10);
 }
 
-/* su mobile meglio bottoni a colonna e larghi */
 @media (max-width: 560px){
   .modal__body .row{
     display: grid;

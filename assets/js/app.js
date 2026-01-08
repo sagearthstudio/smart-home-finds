@@ -1,529 +1,683 @@
-/* Smart Home Finds — Issues as CMS + Add Product modal (GitHub API) */
-(function () {
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => Array.from(document.querySelectorAll(s));
+/* Smart Home Finds — app.js
+   - Reads products from GitHub Issues (label: "product")
+   - Adds products by creating a new Issue
+   - Optional image upload: commits the selected file into /uploads and uses the raw GitHub URL
+   - PWA: registers ./sw.js
+*/
 
-  const LS_TOKEN_KEY = "shf_github_token";
+(() => {
+  'use strict';
 
-  const state = {
-    config: null,
-    products: [],
-    filtered: [],
-    activeCategory: "All",
-    query: "",
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+
+  const els = {
+    year: $('year'),
+    brandName: $('brandName'),
+    brandNameFooter: $('brandNameFooter'),
+    brandTagline: $('brandTagline'),
+    logoText: $('logoText'),
+
+    btnPinterest: $('btnPinterest'),
+    btnInstagram: $('btnInstagram'),
+    btnLinktree: $('btnLinktree'),
+
+    searchInput: $('searchInput'),
+    categoryChips: $('categoryChips'),
+    productGrid: $('productGrid'),
+    statusText: $('statusText'),
+
+    btnRefresh: $('btnRefresh'),
+    btnToken: $('btnToken'),
+    btnAddProduct: $('btnAddProduct'),
+    btnDisclosure: $('btnDisclosure'),
+    disclosureBox: $('disclosureBox'),
+
+    // Token modal
+    tokenModal: $('tokenModal'),
+    tokenInput: $('tokenInput'),
+    btnSaveToken: $('btnSaveToken'),
+    btnClearToken: $('btnClearToken'),
+    tokenStatus: $('tokenStatus'),
+
+    // Product modal
+    productModal: $('productModal'),
+    pTitle: $('pTitle'),
+    pCategory: $('pCategory'),
+    pPinUrl: $('pPinUrl'),
+    pDestUrl: $('pDestUrl'),
+    pImageUrl: $('pImageUrl'),
+    pImageFile: $('pImageFile'),
+    pTags: $('pTags'),
+    pNotes: $('pNotes'),
+    btnSubmitProduct: $('btnSubmitProduct'),
+    btnCancelProduct: $('btnCancelProduct'),
+    btnFallbackGitHub: $('btnFallbackGitHub'),
+    productStatus: $('productStatus'),
+
+    cardTemplate: document.getElementById('cardTemplate'),
   };
 
-  function safeUrl(url) {
-    try {
-      const u = new URL(String(url || ""));
-      if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
-      return "";
-    } catch {
-      return "";
-    }
-  }
+  // ---------- Config (auto-detected for GitHub Pages project sites) ----------
+  const owner = (location.hostname.split('.')[0] || '').trim();
+  const repo = (location.pathname.split('/').filter(Boolean)[0] || '').trim();
 
-  function normalize(str) {
-    return String(str || "").toLowerCase().replace(/\s+/g, " ").trim();
-  }
+  // Social links (customize if you want)
+  const LINKS = {
+    pinterest: 'https://www.pinterest.com/',
+    instagram: 'https://www.instagram.com/',
+    linktree: 'https://linktr.ee/',
+  };
 
-  function uniq(arr) {
-    return Array.from(new Set(arr));
-  }
+  // Categories for UI
+  const CATEGORIES = [
+    'All',
+    'Candles',
+    'Wall Art',
+    'Furniture',
+    'Gifts',
+    'Accessories',
+    'Kitchen',
+    'Bathroom',
+    'Lighting',
+    'Smart',
+  ];
 
-  function setStatus(msg) {
-    $("#statusText").textContent = msg;
+  // Labels
+  const PRODUCT_LABEL = 'product';
+
+  // Storage keys
+  const LS_TOKEN = 'shf_github_token';
+
+  // ---------- State ----------
+  let allProducts = [];
+  let activeCategory = 'All';
+  let searchQuery = '';
+
+  // ---------- Helpers ----------
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function setStatus(text) {
+    if (els.statusText) els.statusText.textContent = text;
   }
 
   function setNote(el, msg, kind) {
-    el.classList.remove("ok", "bad");
-    if (kind) el.classList.add(kind);
-    el.textContent = msg;
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.remove('ok', 'bad');
+    if (kind === 'ok') el.classList.add('ok');
+    if (kind === 'bad') el.classList.add('bad');
+  }
+
+  function normalizeUrl(url) {
+    const u = (url || '').trim();
+    if (!u) return '';
+    try {
+      return new URL(u).toString();
+    } catch {
+      return u;
+    }
+  }
+
+  function splitTags(tags) {
+    return (tags || '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+
+  function slugifyLabel(s) {
+    return (s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
   }
 
   function getToken() {
-    return localStorage.getItem(LS_TOKEN_KEY) || "";
+    return (localStorage.getItem(LS_TOKEN) || '').trim();
   }
 
-  function setToken(t) {
-    localStorage.setItem(LS_TOKEN_KEY, t);
+  function authHeaders() {
+    const t = getToken();
+    return t
+      ? {
+          Authorization: `Bearer ${t}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+        }
+      : {
+          'X-GitHub-Api-Version': '2022-11-28',
+        };
   }
 
-  function clearToken() {
-    localStorage.removeItem(LS_TOKEN_KEY);
+  function isGithubPagesProject() {
+    return location.hostname.endsWith('.github.io') && !!repo;
   }
 
-  function githubHeaders() {
-    const h = {
-      "Accept": "application/vnd.github+json",
-    };
-    const token = getToken().trim();
-    if (token) h["Authorization"] = `Bearer ${token}`;
-    return h;
+  function githubRepoUrl() {
+    // For project sites: https://github.com/{owner}/{repo}
+    return `https://github.com/${owner}/${repo}`;
   }
 
-  function apiIssuesUrl(owner, repo, label, perPage = 100) {
-    const params = new URLSearchParams({
-      state: "all",
-      per_page: String(Math.min(100, Math.max(1, perPage))),
-      labels: label || "product",
-      sort: "created",
-      direction: "desc",
-    });
-    return `https://api.github.com/repos/${owner}/${repo}/issues?${params.toString()}`;
+  function githubIssueNewUrl() {
+    // Open the GitHub issue form template
+    return `${githubRepoUrl()}/issues/new?template=add-product.yml`;
   }
 
-  function apiCreateIssueUrl(owner, repo) {
-    return `https://api.github.com/repos/${owner}/${repo}/issues`;
-  }
-
-  // Parse fields from Issue body headings
-  function parseIssue(issue) {
-    if (issue.pull_request) return null;
-
-    const body = String(issue.body || "");
-
+  // Parse issue body from the issue-form template or from webapp-created markdown
+  function parseIssueBody(body) {
+    const text = (body || '').replace(/\r/g, '');
     const getField = (label) => {
-      const safe = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const re = new RegExp(`^###\\s+${safe}\\s*$([\\s\\S]*?)(^###\\s+|\\Z)`, "mi");
-      const m = body.match(re);
-      if (!m) return "";
-      const chunk = m[1] || "";
-      const lines = chunk
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter((l) => l && l.toLowerCase() !== "no response");
-      return lines[0] || "";
+      // matches:
+      // Label
+      // value
+      const re = new RegExp(`^\\s*${label}\\s*\\n+([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? m[1].trim() : '';
     };
 
-    const pinUrl = safeUrl(getField("Pinterest Pin URL"));
-    const destinationUrl = safeUrl(getField("Destination / Affiliate URL (optional)"));
-    const imageUrl = safeUrl(getField("Image URL (optional)"));
-    const category = (getField("Category") || "All").trim();
-    const tagsRaw = getField("Tags (comma separated)");
-    const notes = getField("Short Notes (optional)");
+    // also accept "Label:" on same line
+    const getFieldInline = (label) => {
+      const re = new RegExp(`^\\s*${label}\\s*:\\s*([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? m[1].trim() : '';
+    };
 
-    const title = String(issue.title || "Untitled").trim();
+    const pinUrl = normalizeUrl(getField('Pinterest Pin URL') || getFieldInline('Pinterest Pin URL'));
+    const destUrl = normalizeUrl(getField('Destination / Affiliate URL') || getFieldInline('Destination / Affiliate URL'));
+    const imageUrl = normalizeUrl(getField('Image URL') || getFieldInline('Image URL'));
+    const title = (getField('Title') || getFieldInline('Title')).trim();
+    const category = (getField('Category') || getFieldInline('Category')).trim();
+    const tags = (getField('Tags') || getFieldInline('Tags')).trim();
+    const notes = (getField('Short Notes') || getFieldInline('Short Notes')).trim();
 
-    const tags = uniq(
-      (tagsRaw || "")
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    );
-
-    // accept if at least pin exists
-    if (!pinUrl && !destinationUrl) return null;
+    // If users paste an image upload markdown like: ![alt](https://user-images.githubusercontent.com/...)
+    const uploadImgMatch = text.match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/i);
+    const uploadedImage = uploadImgMatch ? normalizeUrl(uploadImgMatch[1]) : '';
 
     return {
-      id: String(issue.number),
-      title,
       pinUrl,
-      destinationUrl,
-      imageUrl,
-      category: category || "All",
+      destUrl,
+      imageUrl: imageUrl || uploadedImage,
+      title,
+      category,
       tags,
       notes,
-      createdAt: issue.created_at || "",
     };
   }
 
-  async function fetchProducts(force = false) {
-    const cfg = state.config;
-    const url = apiIssuesUrl(cfg.owner, cfg.repo, cfg.issueLabel || "product", cfg.maxItems || 100);
+  function productFromIssue(issue) {
+    const parsed = parseIssueBody(issue.body || '');
+    const title =
+      (parsed.title && parsed.title !== 'No response' ? parsed.title : '') ||
+      (issue.title || '').replace(/^Add\s+product\s*:\s*/i, '').trim();
 
-    const res = await fetch(url, { headers: githubHeaders() });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`GitHub API error: ${res.status} ${res.statusText} ${text}`);
+    // Category: prefer parsed, else from labels
+    let category = parsed.category && parsed.category !== 'No response' ? parsed.category : '';
+    if (!category) {
+      const labelNames = (issue.labels || []).map((l) => (typeof l === 'string' ? l : l.name)).filter(Boolean);
+      const catLabel = labelNames.find((l) => l && l !== PRODUCT_LABEL);
+      category = catLabel ? catLabel.replace(/-/g, ' ') : 'Accessories';
     }
 
-    const issues = await res.json();
-    const items = issues.map(parseIssue).filter(Boolean);
-    return items;
+    const tags = splitTags(parsed.tags && parsed.tags !== 'No response' ? parsed.tags : '');
+
+    const pinUrl = parsed.pinUrl || '';
+    const destUrl = parsed.destUrl || '';
+    const imageUrl = parsed.imageUrl || '';
+
+    return {
+      id: issue.number,
+      issueUrl: issue.html_url,
+      createdAt: issue.created_at,
+      title: title || `Product #${issue.number}`,
+      category: category || 'Accessories',
+      tags,
+      pinUrl,
+      destUrl,
+      imageUrl,
+      notes: parsed.notes && parsed.notes !== 'No response' ? parsed.notes : '',
+    };
   }
 
-  async function fetchSampleProducts() {
-    try {
-      const res = await fetch(`products.sample.json?v=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("sample not found");
-      return await res.json();
-    } catch {
-      return [];
-    }
-  }
-
-  function renderCategories() {
-    const cfg = state.config;
-    const chips = $("#categoryChips");
-    chips.innerHTML = "";
-
-    const categories = (cfg.categories && cfg.categories.length) ? cfg.categories : ["All"];
-    for (const cat of categories) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "chip" + (cat === state.activeCategory ? " is-active" : "");
-      btn.textContent = cat;
-      btn.addEventListener("click", () => {
-        state.activeCategory = cat;
-        $$(".chip").forEach((c) => c.classList.remove("is-active"));
-        btn.classList.add("is-active");
-        applyFilters();
+  // ---------- UI ----------
+  function renderChips() {
+    if (!els.categoryChips) return;
+    els.categoryChips.innerHTML = '';
+    CATEGORIES.forEach((cat) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (cat === activeCategory ? ' is-active' : '');
+      b.textContent = cat;
+      b.addEventListener('click', () => {
+        activeCategory = cat;
+        renderChips();
+        renderProducts();
       });
-      chips.appendChild(btn);
-    }
+      els.categoryChips.appendChild(b);
+    });
   }
 
-  function makeTagEl(text) {
-    const el = document.createElement("span");
-    el.className = "tag";
-    el.textContent = text;
-    return el;
+  function matchesFilters(p) {
+    const catOk = activeCategory === 'All' || (p.category || '').toLowerCase() === activeCategory.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return catOk;
+    const hay = `${p.title} ${p.category} ${(p.tags || []).join(' ')} ${p.notes || ''}`.toLowerCase();
+    return catOk && hay.includes(q);
   }
 
   function renderProducts() {
-    const grid = $("#productGrid");
-    const tpl = $("#cardTemplate");
-    grid.innerHTML = "";
+    if (!els.productGrid || !els.cardTemplate) return;
+    els.productGrid.innerHTML = '';
 
-    const items = state.filtered;
+    const items = allProducts.filter(matchesFilters);
     if (!items.length) {
-      const empty = document.createElement("div");
-      empty.className = "disclosure";
-      empty.innerHTML = `<strong>No results.</strong> Try a different search or category.`;
-      grid.appendChild(empty);
-      setStatus("No products found.");
+      const empty = document.createElement('div');
+      empty.className = 'note';
+      empty.textContent = 'No products found. Try Refresh or clear filters.';
+      els.productGrid.appendChild(empty);
       return;
     }
 
     const frag = document.createDocumentFragment();
-
     for (const p of items) {
-      const node = tpl.content.cloneNode(true);
-      const media = node.querySelector(".card__media");
-      const img = node.querySelector(".card__img");
-      const badge = node.querySelector(".badge");
-      const title = node.querySelector(".card__title");
-      const tagsWrap = node.querySelector(".card__tags");
-      const openLink = node.querySelector(".card__actions .link");
-      const pinLink = node.querySelector(".card__actions .link--muted");
+      const node = els.cardTemplate.content.cloneNode(true);
 
-      badge.textContent = p.category || "Find";
+      const card = node.querySelector('.card');
+      const media = node.querySelector('.card__media');
+      const img = node.querySelector('.card__img');
+      const badge = node.querySelector('.badge');
+      const title = node.querySelector('.card__title');
+      const tags = node.querySelector('.card__tags');
+      const linkOpen = node.querySelectorAll('.link')[0];
+      const linkPin = node.querySelectorAll('.link')[1];
+
       title.textContent = p.title;
+      badge.textContent = p.category || 'Product';
 
-      const imgUrl = p.imageUrl || "";
-      if (imgUrl) {
-        img.src = imgUrl;
+      // Image
+      if (p.imageUrl) {
+        img.src = p.imageUrl;
         img.alt = p.title;
       } else {
-        img.remove();
-        media.style.background =
-          "linear-gradient(135deg, rgba(230,201,168,.22), rgba(167,197,255,.15)), rgba(0,0,0,.25)";
+        img.alt = p.title;
+        img.style.display = 'none';
+        media.style.background = 'linear-gradient(135deg, rgba(230,201,168,.18), rgba(167,197,255,.10))';
       }
 
-      const primaryUrl = safeUrl(p.destinationUrl) || safeUrl(p.pinUrl) || "#";
+      // Media click -> destination preferred, else pin
+      const primaryUrl = p.destUrl || p.pinUrl || p.issueUrl;
       media.href = primaryUrl;
 
-      openLink.href = primaryUrl;
-      openLink.textContent = primaryUrl.includes("amzn.to") ? "Open (Amazon)" : "Open";
+      // Actions
+      linkOpen.href = primaryUrl;
+      linkPin.href = p.pinUrl || p.issueUrl;
+      linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
 
-      pinLink.href = safeUrl(p.pinUrl) || primaryUrl;
-      pinLink.textContent = "Pin";
-
-      const tagList = (p.tags || []).slice(0, 6);
-      for (const t of tagList) tagsWrap.appendChild(makeTagEl(t));
+      // Tags
+      tags.innerHTML = '';
+      (p.tags || []).slice(0, 6).forEach((t) => {
+        const s = document.createElement('span');
+        s.className = 'tag';
+        s.textContent = t;
+        tags.appendChild(s);
+      });
 
       frag.appendChild(node);
     }
-
-    grid.appendChild(frag);
-    setStatus(`Showing ${items.length} product${items.length === 1 ? "" : "s"}.`);
+    els.productGrid.appendChild(frag);
   }
 
-  function applyFilters() {
-    const q = normalize(state.query);
-    const cat = state.activeCategory;
-
-    state.filtered = state.products.filter((p) => {
-      const matchCat = cat === "All" || normalize(p.category) === normalize(cat);
-      if (!matchCat) return false;
-      if (!q) return true;
-
-      const hay = [p.title, p.category, ...(p.tags || [])].map(normalize).join(" ");
-      return hay.includes(q);
-    });
-
-    renderProducts();
-  }
-
-  // MODALS
+  // ---------- Modals ----------
   function openModal(which) {
-    const el = which === "token" ? $("#tokenModal") : $("#productModal");
+    const el = which === 'token' ? els.tokenModal : els.productModal;
+    if (!el) return;
     el.hidden = false;
-    el.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    el.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
   }
 
   function closeModal(which) {
-    const el = which === "token" ? $("#tokenModal") : $("#productModal");
+    const el = which === 'token' ? els.tokenModal : els.productModal;
+    if (!el) return;
     el.hidden = true;
-    el.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
+    el.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
 
-  function buildGitHubFormUrl(cfg) {
-    // fallback: open GitHub issue form template (if you also keep the YAML template)
-    return `https://github.com/${cfg.owner}/${cfg.repo}/issues/new?template=product.yml`;
-  }
-
-  function populateCategorySelect() {
-    const cfg = state.config;
-    const sel = $("#pCategory");
-    sel.innerHTML = "";
-    const cats = (cfg.categories || ["All"]).filter((c) => c !== "All");
-    for (const c of (cats.length ? cats : ["Other"])) {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      sel.appendChild(opt);
-    }
-  }
-
-  function makeIssueBody(fields) {
-    // Keep headings EXACT for parser
-    return [
-      `### Pinterest Pin URL`,
-      fields.pinUrl || "",
-      ``,
-      `### Destination / Affiliate URL (optional)`,
-      fields.destUrl || "",
-      ``,
-      `### Image URL (optional)`,
-      fields.imageUrl || "",
-      ``,
-      `### Category`,
-      fields.category || "Other",
-      ``,
-      `### Tags (comma separated)`,
-      fields.tags || "",
-      ``,
-      `### Short Notes (optional)`,
-      fields.notes || "",
-      ``,
-      `---`,
-      `Created via Smart Home Finds webapp.`,
-    ].join("\n");
-  }
-
-  async function createProductIssue() {
-    const cfg = state.config;
-    const statusEl = $("#productStatus");
-
-    const title = String($("#pTitle").value || "").trim();
-    const pinUrl = safeUrl($("#pPinUrl").value);
-    const destUrl = safeUrl($("#pDestUrl").value);
-    const imageUrl = safeUrl($("#pImageUrl").value);
-    const category = String($("#pCategory").value || "Other").trim();
-    const tags = String($("#pTags").value || "").trim();
-    const notes = String($("#pNotes").value || "").trim();
-
-    if (!pinUrl) {
-      setNote(statusEl, "Pinterest Pin URL is required (must be a valid https link).", "bad");
-      return;
-    }
-
-    const issueTitle = title ? title : `Product: ${category} find`;
-
-    const body = makeIssueBody({ pinUrl, destUrl, imageUrl, category, tags, notes });
-
-    const token = getToken().trim();
-    if (!token) {
-      setNote(statusEl, "No token saved. Click 🔑 Token first. Without a token the webapp cannot publish issues.", "bad");
-      return;
-    }
-
-    setNote(statusEl, "Publishing product…", "");
-
-    const res = await fetch(apiCreateIssueUrl(cfg.owner, cfg.repo), {
-      method: "POST",
-      headers: {
-        ...githubHeaders(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: issueTitle,
-        body,
-        labels: [cfg.issueLabel || "product"],
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      setNote(
-        statusEl,
-        `Publish failed. Your token may be read-only. Create a token with "Issues: Read and Write". (${res.status}) ${text}`,
-        "bad"
-      );
-      return;
-    }
-
-    setNote(statusEl, "✅ Product published! Click Refresh to see it on the site.", "ok");
-  }
-
-  function wireUI() {
-    $("#searchInput").addEventListener("input", (e) => {
-      state.query = e.target.value || "";
-      applyFilters();
-    });
-
-    $("#btnRefresh").addEventListener("click", async () => {
-      await load(true);
-    });
-
-    $("#btnDisclosure").addEventListener("click", () => {
-      const box = $("#disclosureBox");
-      const isOpen = !box.hasAttribute("hidden");
-      if (isOpen) {
-        box.setAttribute("hidden", "");
-        $("#btnDisclosure").setAttribute("aria-expanded", "false");
-      } else {
-        box.removeAttribute("hidden");
-        $("#btnDisclosure").setAttribute("aria-expanded", "true");
-      }
-    });
-
-    $("#btnToken").addEventListener("click", () => {
-      $("#tokenInput").value = getToken();
-      setNote($("#tokenStatus"), getToken() ? "Token is saved in this browser." : "No token saved yet.", getToken() ? "ok" : "");
-      openModal("token");
-    });
-
-    $("#btnAddProduct").addEventListener("click", () => {
-      $("#btnFallbackGitHub").href = buildGitHubFormUrl(state.config);
-      $("#productStatus").textContent = "";
-      $("#pTitle").value = "";
-      $("#pPinUrl").value = "";
-      $("#pDestUrl").value = "";
-      $("#pImageUrl").value = "";
-      $("#pTags").value = "";
-      $("#pNotes").value = "";
-      populateCategorySelect();
-      openModal("product");
-    });
-
-    // Close modals
-    $$(".modal__overlay, [data-close]").forEach((el) => {
-      el.addEventListener("click", (e) => {
-        const which = e.target.getAttribute("data-close");
-        if (which === "token") closeModal("token");
-        if (which === "product") closeModal("product");
+  function wireModalClose() {
+    document.querySelectorAll('[data-close]').forEach((x) => {
+      x.addEventListener('click', (e) => {
+        const which = e.currentTarget.getAttribute('data-close');
+        if (which === 'token') closeModal('token');
+        if (which === 'product') closeModal('product');
       });
     });
 
-    // Token actions
-    $("#btnSaveToken").addEventListener("click", () => {
-      const t = String($("#tokenInput").value || "").trim();
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal('token');
+        closeModal('product');
+      }
+    });
+  }
+
+  // ---------- GitHub API ----------
+  async function ghFetch(url, options = {}) {
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      ...authHeaders(),
+      ...(options.headers || {}),
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (!res.ok) {
+      let detail = '';
+      try {
+        const j = await res.json();
+        detail = j && (j.message || JSON.stringify(j));
+      } catch {
+        // ignore
+      }
+      const err = new Error(`GitHub API error: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ''}`);
+      err.status = res.status;
+      throw err;
+    }
+
+    // 204 no content
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  async function validateToken() {
+    try {
+      const j = await ghFetch('https://api.github.com/rate_limit');
+      const remaining = j?.resources?.core?.remaining;
+      const limit = j?.resources?.core?.limit;
+      setNote(els.tokenStatus, `✅ Token OK. API remaining: ${remaining}/${limit}`, 'ok');
+      return true;
+    } catch (e) {
+      setNote(els.tokenStatus, `❌ Token not working: ${e.message}`, 'bad');
+      return false;
+    }
+  }
+
+  async function fetchProductsFromIssues() {
+    if (!owner || !repo) {
+      setStatus('This site is designed for GitHub Pages project sites (username.github.io/repo).');
+      return [];
+    }
+
+    setStatus('Loading products from GitHub issues…');
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(PRODUCT_LABEL)}&state=open&per_page=100&sort=created&direction=desc`;
+
+    try {
+      const issues = await ghFetch(url);
+      const products = (issues || [])
+        .filter((it) => !it.pull_request) // ignore PRs
+        .map(productFromIssue);
+
+      setStatus(`Loaded ${products.length} products.`);
+      return products;
+    } catch (e) {
+      // common: rate limit without token
+      if (e.status === 403) {
+        setStatus('Rate limited by GitHub. Tap “🔑 Token” and add a token (read-only is enough to load).');
+      } else {
+        setStatus(`Error loading products: ${e.message}`);
+      }
+      return [];
+    }
+  }
+
+  async function createProductIssue(product) {
+    const t = getToken();
+    if (!t) {
+      throw new Error('No token saved. Tap “🔑 Token” and paste a token with Issues: Read and write.');
+    }
+
+    const title = (product.title || '').trim() || 'New product';
+    const category = (product.category || 'Accessories').trim() || 'Accessories';
+    const tags = (product.tags || []).join(', ');
+
+    const body = [
+      `Pinterest Pin URL`,
+      `${product.pinUrl || ''}`,
+      ``,
+      `Destination / Affiliate URL`,
+      `${product.destUrl || ''}`,
+      ``,
+      `Image URL`,
+      `${product.imageUrl || ''}`,
+      ``,
+      `Title`,
+      `${title}`,
+      ``,
+      `Category`,
+      `${category}`,
+      ``,
+      `Tags`,
+      `${tags || ''}`,
+      ``,
+      `Short Notes`,
+      `${product.notes || ''}`,
+      ``,
+    ].join('\n');
+
+    const labels = [PRODUCT_LABEL, slugifyLabel(category)].filter(Boolean);
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
+    const created = await ghFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: `Add product: ${title}`, body, labels }),
+    });
+
+    return created;
+  }
+
+  async function uploadImageToRepo(file) {
+    // Upload to /uploads/ and return raw URL
+    const t = getToken();
+    if (!t) {
+      throw new Error('No token saved. To upload an image you need a token with Contents: Read and write.');
+    }
+
+    const arrayBuf = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+
+    // base64 encode
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const content = btoa(binary);
+
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? ext : 'png';
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `uploads/${stamp}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filename)}`;
+    const res = await ghFetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Add product image ${filename}`,
+        content,
+      }),
+    });
+
+    // Use raw link so it can be displayed directly
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filename}`;
+    return rawUrl;
+  }
+
+  // ---------- Events ----------
+  function wireHeaderLinks() {
+    els.btnPinterest.href = LINKS.pinterest;
+    els.btnInstagram.href = LINKS.instagram;
+    els.btnLinktree.href = LINKS.linktree;
+  }
+
+  function wireToolbar() {
+    els.btnRefresh?.addEventListener('click', async () => {
+      await reloadProducts(true);
+    });
+
+    els.btnToken?.addEventListener('click', () => {
+      // prefill
+      const t = getToken();
+      els.tokenInput.value = t ? t : '';
+      setNote(els.tokenStatus, t ? 'Token loaded from this browser.' : 'No token saved yet.', t ? 'ok' : '');
+      openModal('token');
+    });
+
+    els.btnAddProduct?.addEventListener('click', () => {
+      // Fill categories in select
+      els.pCategory.innerHTML = '';
+      CATEGORIES.filter((c) => c !== 'All').forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        els.pCategory.appendChild(opt);
+      });
+
+      // Default values
+      els.pTitle.value = '';
+      els.pPinUrl.value = '';
+      els.pDestUrl.value = '';
+      els.pImageUrl.value = '';
+      if (els.pImageFile) els.pImageFile.value = '';
+      els.pTags.value = '';
+      els.pNotes.value = '';
+      setNote(els.productStatus, '', '');
+
+      els.btnFallbackGitHub.href = githubIssueNewUrl();
+      openModal('product');
+    });
+
+    els.btnDisclosure?.addEventListener('click', () => {
+      const isOpen = !els.disclosureBox.hidden;
+      els.disclosureBox.hidden = isOpen;
+      els.btnDisclosure.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  function wireSearch() {
+    els.searchInput?.addEventListener('input', () => {
+      searchQuery = els.searchInput.value || '';
+      renderProducts();
+    });
+  }
+
+  function wireTokenModal() {
+    els.btnSaveToken?.addEventListener('click', async () => {
+      const t = (els.tokenInput.value || '').trim();
       if (!t) {
-        setNote($("#tokenStatus"), "Paste a token first.", "bad");
+        setNote(els.tokenStatus, 'Paste a token first.', 'bad');
         return;
       }
-      setToken(t);
-      setNote($("#tokenStatus"), "✅ Token saved in this browser.", "ok");
+      localStorage.setItem(LS_TOKEN, t);
+      await validateToken();
     });
 
-    $("#btnClearToken").addEventListener("click", () => {
-      clearToken();
-      $("#tokenInput").value = "";
-      setNote($("#tokenStatus"), "Token removed from this browser.", "");
+    els.btnClearToken?.addEventListener('click', () => {
+      localStorage.removeItem(LS_TOKEN);
+      els.tokenInput.value = '';
+      setNote(els.tokenStatus, 'Token removed from this browser.', 'ok');
     });
+  }
 
-    // Product actions
-    $("#btnSubmitProduct").addEventListener("click", async () => {
+  function wireProductModal() {
+    els.btnSubmitProduct?.addEventListener('click', async () => {
       try {
-        await createProductIssue();
-      } catch (err) {
-        console.error(err);
-        setNote($("#productStatus"), "Unexpected error while publishing. Check console.", "bad");
+        setNote(els.productStatus, 'Publishing…', '');
+
+        const pinUrl = normalizeUrl(els.pPinUrl.value);
+        if (!pinUrl) {
+          setNote(els.productStatus, 'Pinterest Pin URL is required.', 'bad');
+          return;
+        }
+
+        let imageUrl = normalizeUrl(els.pImageUrl.value);
+        const file = els.pImageFile?.files?.[0];
+
+        // If user selected a file, upload it to the repo and use that URL
+        if (file) {
+          setNote(els.productStatus, 'Uploading image to GitHub…', '');
+          imageUrl = await uploadImageToRepo(file);
+        }
+
+        const product = {
+          title: (els.pTitle.value || '').trim(),
+          category: (els.pCategory.value || 'Accessories').trim(),
+          pinUrl,
+          destUrl: normalizeUrl(els.pDestUrl.value),
+          imageUrl,
+          tags: splitTags(els.pTags.value),
+          notes: (els.pNotes.value || '').trim(),
+        };
+
+        setNote(els.productStatus, 'Creating GitHub issue…', '');
+        const issue = await createProductIssue(product);
+
+        // Immediately show it on the page
+        const newProd = productFromIssue(issue);
+        allProducts = [newProd, ...allProducts];
+        renderProducts();
+
+        setNote(els.productStatus, '✅ Published! It is now visible on the webapp.', 'ok');
+
+        // Close after a short delay (better UX on mobile)
+        await sleep(650);
+        closeModal('product');
+      } catch (e) {
+        setNote(els.productStatus, `❌ ${e.message}`, 'bad');
       }
     });
-
-    $("#btnCancelProduct").addEventListener("click", () => closeModal("product"));
-
-    // ESC to close
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        if (!$("#tokenModal").hidden) closeModal("token");
-        if (!$("#productModal").hidden) closeModal("product");
-      }
-    });
   }
 
-  function applyConfigToUI(cfg) {
-    $("#brandName").textContent = cfg.brand || "Smart Home Finds";
-    $("#brandNameFooter").textContent = cfg.brand || "Smart Home Finds";
-    $("#brandTagline").textContent = cfg.tagline || "";
-    $("#logoText").textContent = cfg.logoText || "SHF";
-    $("#disclosureText").textContent = cfg.affiliateDisclosure || "";
-
-    $("#btnPinterest").href = cfg.social?.pinterest || "https://www.pinterest.com/";
-    $("#btnInstagram").href = cfg.social?.instagram || "https://www.instagram.com/";
-    $("#btnLinktree").href = cfg.social?.linktree || "https://linktr.ee/";
-    $("#btnShop").href = cfg.shopPageUrl || "#products";
-
-    $("#year").textContent = String(new Date().getFullYear());
-    document.title = cfg.brand || "Smart Home Finds";
+  // ---------- Load ----------
+  async function reloadProducts(showSpinner) {
+    if (showSpinner) setStatus('Refreshing…');
+    const products = await fetchProductsFromIssues();
+    allProducts = products;
+    renderProducts();
   }
 
-  async function load(force = false) {
+  function initMeta() {
+    const year = new Date().getFullYear();
+    if (els.year) els.year.textContent = String(year);
+    if (els.brandNameFooter) els.brandNameFooter.textContent = els.brandName?.textContent || 'Smart Home Finds';
+  }
+
+  function init() {
+    initMeta();
+    wireHeaderLinks();
+    renderChips();
+    wireToolbar();
+    wireSearch();
+    wireModalClose();
+    wireTokenModal();
+    wireProductModal();
+    renderProducts();
+    reloadProducts(false);
+  }
+
+  // ---------- PWA (installable) ----------
+  async function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
     try {
-      setStatus(force ? "Refreshing products…" : "Loading products…");
-      const items = await fetchProducts(force);
-      state.products = items;
-
-      if (!state.products.length) {
-        setStatus("No GitHub products yet — loading sample.");
-        state.products = await fetchSampleProducts();
-      }
-
-      state.products.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-      applyFilters();
-
-      const tok = getToken().trim();
-      if (!tok) {
-        setStatus("Loaded. Tip: add a token (🔑) to avoid GitHub API limits.");
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus("GitHub API unavailable — loading sample products.");
-      state.products = await fetchSampleProducts();
-      applyFilters();
-    }
-  }
-
-  async function init() {
-    try {
-      const res = await fetch(`config.json?v=${Date.now()}`, { cache: "no-store" });
-      state.config = await res.json();
+      // Important: for project sites, this must be relative
+      await navigator.serviceWorker.register('./sw.js', { scope: './' });
     } catch {
-      state.config = {
-        brand: "Smart Home Finds",
-        tagline: "",
-        logoText: "SHF",
-        owner: "sagearthstudio",
-        repo: "smart-home-finds",
-        social: { pinterest: "https://www.pinterest.com/" },
-        categories: ["All"],
-        issueLabel: "product",
-        cacheMinutes: 10,
-        maxItems: 100,
-      };
+      // ignore
     }
-
-    applyConfigToUI(state.config);
-    renderCategories();
-    wireUI();
-    await load(false);
   }
 
-  init();
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+    registerSW();
+  });
 })();
