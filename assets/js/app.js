@@ -64,9 +64,10 @@
 
   // Social links (customize if you want)
   const LINKS = {
-    pinterest: 'https://www.pinterest.com/',
-    instagram: 'https://www.instagram.com/',
-    linktree: 'https://linktr.ee/',
+    pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
+    instagram: 'https://www.instagram.com/sagearthstudio/',
+    linktree: 'https://linktr.ee/sagearthstudio',
+    products: "https://www.pinterest.com/SmartlifeSmartIdeas/"
   };
 
   // Categories for UI
