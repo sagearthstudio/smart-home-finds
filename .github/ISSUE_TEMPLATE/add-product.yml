@@ -1,44 +1,22 @@
-name: Add Product
-description: Add a new product to the Smart Home Finds webapp (appears automatically on the site).
-title: "Product: <short title here>"
+name: "Add Product"
+description: "Submit a new product to appear on the Smart Home Finds webapp."
+title: "Add product: "
 labels: ["product"]
 body:
   - type: markdown
     attributes:
       value: |
-        ✅ After you submit this form, the product will show up automatically on the website (it loads products from GitHub Issues).
-        
-        Tip: If you use a **pin.it** short link, also paste an **Image URL** (preferably i.pinimg.com) so the card can show the photo.
+        **Tip (photo):** you can *drag & drop* an image into this form (or paste a direct image URL).
+        If you upload an image, GitHub will generate a link like `https://user-images...` that you can paste into **Image URL**.
 
   - type: input
-    id: pin_url
+    id: title
     attributes:
-      label: Pinterest Pin URL
-      description: Paste the Pin link (example: https://pin.it/xxxx or https://www.pinterest.com/pin/xxxx)
-      placeholder: https://pin.it/xxxxxxxx
+      label: Title
+      description: Product name shown on the card
+      placeholder: "Set of 2 Metal Wall Sconce Candle Holders"
     validations:
-      required: true
-
-  - type: input
-    id: destination_url
-    attributes:
-      label: Destination / Affiliate URL (optional)
-      description: Where the user should land (Amazon affiliate link, shop page, etc.)
-      placeholder: https://amzn.to/xxxxxxx
-
-  - type: input
-    id: image_url
-    attributes:
-      label: Image URL (optional)
-      description: Direct image URL (best: i.pinimg.com/...jpg). This makes the card look great.
-      placeholder: https://i.pinimg.com/...jpg
-
-  - type: input
-    id: custom_title
-    attributes:
-      label: Title (optional)
-      description: If empty, the issue title will be used.
-      placeholder: Cozy Candle Warmer Lamp (Timer + Dimmable)
+      required: false
 
   - type: dropdown
     id: category
@@ -52,18 +30,52 @@ body:
         - Accessories
         - Kitchen
         - Bathroom
+        - Lighting
+        - Smart
     validations:
       required: true
 
   - type: input
+    id: pin
+    attributes:
+      label: Pinterest Pin URL
+      description: Required (the main reference)
+      placeholder: "https://pin.it/xxxx or https://www.pinterest.com/pin/..."
+    validations:
+      required: true
+
+  - type: input
+    id: dest
+    attributes:
+      label: Destination / Affiliate URL
+      description: Optional (Amazon / shop link)
+      placeholder: "https://amzn.to/xxxxxxx"
+    validations:
+      required: false
+
+  - type: input
+    id: image
+    attributes:
+      label: Image URL
+      description: Optional — best: direct image link (i.pinimg.com) or a GitHub uploaded image link (user-images...)
+      placeholder: "https://i.pinimg.com/...jpg"
+    validations:
+      required: false
+
+  - type: input
     id: tags
     attributes:
-      label: Tags (comma separated)
-      description: Examples: cozy, minimalist, gift idea, farmhouse
-      placeholder: cozy, minimalist, gift idea
+      label: Tags
+      description: Optional — comma separated
+      placeholder: "modern, minimalist, cozy, farmhouse"
+    validations:
+      required: false
 
-  - type: markdown
+  - type: textarea
+    id: notes
     attributes:
-      value: |
-        --- 
-        If you need help finding the **Image URL** from Pinterest: open the pin image in a new tab → copy the i.pinimg.com URL.
+      label: Short Notes
+      description: Optional — why it's good / where to use it / gift idea…
+      placeholder: "Why it’s good / where to use it / gift idea…"
+    validations:
+      required: false
