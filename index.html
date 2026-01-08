@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark light" />
   <title>Smart Home Finds</title>
-  <meta name="description" content="Cozy • Elegant • Minimal — curated home decor & smart upgrades." />
+  <meta name="description" content="Curated home decor & smart upgrades." />
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://api.github.com" />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
+
 <body>
   <header class="hero">
     <div class="hero__top">
@@ -38,12 +39,22 @@
 
       <div class="toolbar">
         <button class="btn" id="btnRefresh" type="button" title="Refresh products">⟳ Refresh</button>
-        <a class="btn btn--primary" id="btnAddProduct" target="_blank" rel="noopener" title="Add a new product">+ Add Product</a>
+
+        <button class="btn" id="btnToken" type="button" title="Connect GitHub Token">
+          🔑 Token
+        </button>
+
+        <button class="btn btn--primary" id="btnAddProduct" type="button" title="Add a new product">
+          + Add Product
+        </button>
+
         <button class="btn btn--ghost" id="btnDisclosure" type="button" aria-expanded="false">Disclosure</button>
       </div>
 
       <div class="disclosure" id="disclosureBox" hidden>
-        <p id="disclosureText">Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.</p>
+        <p id="disclosureText">
+          Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.
+        </p>
       </div>
 
       <div class="status">
@@ -82,6 +93,99 @@
       </div>
     </article>
   </template>
+
+  <!-- MODAL: GitHub Token -->
+  <div class="modal" id="tokenModal" hidden aria-hidden="true">
+    <div class="modal__overlay" data-close="token"></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
+      <div class="modal__header">
+        <h2 id="tokenTitle">Connect GitHub Token</h2>
+        <button class="iconbtn" type="button" data-close="token" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal__body">
+        <p class="muted">
+          Paste a GitHub token to avoid API limits. It is saved only in your browser (localStorage), not in the repo.
+        </p>
+
+        <label class="field">
+          <span class="field__label">GitHub Token</span>
+          <input id="tokenInput" type="password" placeholder="ghp_... or github_pat_..." autocomplete="off" />
+          <span class="field__hint">
+            For adding products from the webapp you need a token with <b>Issues: Read and Write</b>.
+            For only reading products, <b>Public repo read</b> is enough.
+          </span>
+        </label>
+
+        <div class="row">
+          <button class="btn btn--primary" id="btnSaveToken" type="button">Save Token</button>
+          <button class="btn" id="btnClearToken" type="button">Remove Token</button>
+        </div>
+
+        <div class="note" id="tokenStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Product -->
+  <div class="modal" id="productModal" hidden aria-hidden="true">
+    <div class="modal__overlay" data-close="product"></div>
+    <div class="modal__panel modal__panel--wide" role="dialog" aria-modal="true" aria-labelledby="productTitle">
+      <div class="modal__header">
+        <h2 id="productTitle">Add Product</h2>
+        <button class="iconbtn" type="button" data-close="product" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="grid2">
+          <label class="field">
+            <span class="field__label">Product Title</span>
+            <input id="pTitle" type="text" placeholder="e.g., Set of 2 Metal Wall Sconce Candle Holders" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Category</span>
+            <select id="pCategory"></select>
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Pinterest Pin URL (required)</span>
+            <input id="pPinUrl" type="url" placeholder="https://pin.it/xxxx or https://www.pinterest.com/pin/..." />
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Destination / Affiliate URL (optional)</span>
+            <input id="pDestUrl" type="url" placeholder="https://amzn.to/xxxxxxx" />
+            <span class="field__hint">Tip: use the correct marketplace link (US/UK).</span>
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Image URL (recommended)</span>
+            <input id="pImageUrl" type="url" placeholder="https://i.pinimg.com/...jpg" />
+            <span class="field__hint">Best: a direct image URL (i.pinimg.com) so the card shows the photo.</span>
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Tags (comma separated)</span>
+            <input id="pTags" type="text" placeholder="modern, minimalist, cozy, farmhouse" />
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Short Notes (optional)</span>
+            <textarea id="pNotes" rows="3" placeholder="Why it’s good / where to use it / gift idea…"></textarea>
+          </label>
+        </div>
+
+        <div class="row">
+          <button class="btn btn--primary" id="btnSubmitProduct" type="button">Publish Product</button>
+          <button class="btn" id="btnCancelProduct" type="button" data-close="product">Cancel</button>
+          <a class="btn btn--ghost" id="btnFallbackGitHub" target="_blank" rel="noopener">Open GitHub Form</a>
+        </div>
+
+        <div class="note" id="productStatus"></div>
+      </div>
+    </div>
+  </div>
 
   <script src="assets/js/app.js"></script>
 </body>
