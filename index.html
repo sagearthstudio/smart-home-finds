@@ -6,7 +6,12 @@
   <meta name="color-scheme" content="dark light" />
   <title>Smart Home Finds</title>
   <meta name="description" content="Curated home decor & smart upgrades." />
+
+  <meta name="theme-color" content="#0b0c10" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/img/icon-192.png" />
   <link rel="preconnect" href="https://api.github.com" />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -105,15 +110,16 @@
 
       <div class="modal__body">
         <p class="muted">
-          Paste a GitHub token to avoid API limits. It is saved only in your browser (localStorage), not in the repo.
+          Paste a GitHub token to avoid API limits and (optionally) publish products.
+          The token is saved only in your browser (localStorage), not in the repo.
         </p>
 
         <label class="field">
           <span class="field__label">GitHub Token</span>
-          <input id="tokenInput" type="password" placeholder="ghp_... or github_pat_..." autocomplete="off" />
+          <input id="tokenInput" type="password" placeholder="github_pat_..." autocomplete="off" />
           <span class="field__hint">
-            For adding products from the webapp you need a token with <b>Issues: Read and Write</b>.
-            For only reading products, <b>Public repo read</b> is enough.
+            To publish products from the webapp you need: <b>Issues: Read and write</b>.
+            To upload a photo from your phone gallery you also need: <b>Contents: Read and write</b>.
           </span>
         </label>
 
@@ -160,9 +166,15 @@
           </label>
 
           <label class="field span2">
-            <span class="field__label">Image URL (recommended)</span>
+            <span class="field__label">Image URL (optional)</span>
             <input id="pImageUrl" type="url" placeholder="https://i.pinimg.com/...jpg" />
-            <span class="field__hint">Best: a direct image URL (i.pinimg.com) so the card shows the photo.</span>
+            <span class="field__hint">If you don't upload a photo, use a direct image URL (i.pinimg.com) so the card shows the photo.</span>
+          </label>
+
+          <label class="field span2">
+            <span class="field__label">Upload Image (optional)</span>
+            <input id="pImageFile" type="file" accept="image/*" />
+            <span class="field__hint">Choose a photo from your gallery. Requires token with <b>Contents: Read and write</b>.</span>
           </label>
 
           <label class="field span2">

@@ -3,16 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Privacy</title>
+  <meta name="color-scheme" content="dark light" />
+  <title>Privacy — Smart Home Finds</title>
+  <meta name="description" content="Privacy policy." />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
-<body class="center">
-  <div class="notfound" style="text-align:left">
-    <h1 style="font-size:28px;margin-bottom:10px">Privacy</h1>
-    <p>This site is hosted on GitHub Pages and loads products from GitHub Issues via the GitHub API.</p>
-    <p><b>GitHub Token:</b> If you add a token using the 🔑 button, it is stored only in your browser (localStorage) and is never committed to the repository.</p>
-    <p>Links may go to third-party sites (Amazon, Pinterest, etc.) which have their own privacy policies.</p>
-    <a class="btn btn--primary" href="./">Back</a>
-  </div>
+<body>
+  <header class="hero">
+    <div class="brand">
+      <div class="brand__logo" aria-hidden="true"><span>SHF</span></div>
+      <div class="brand__text">
+        <h1>Privacy</h1>
+        <p>This site is hosted on GitHub Pages.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="note">
+      <p><b>Local storage</b>: If you choose to paste a GitHub token in the Token dialog, it is stored only in your browser (localStorage) to avoid GitHub API limits and to publish products. It is not sent anywhere else except to GitHub’s API when you load/publish.</p>
+      <p><b>Affiliate links</b>: Some outgoing links may be affiliate links.</p>
+      <p><a class="link" href="./">Back to Home</a></p>
+    </section>
+  </main>
 </body>
 </html>
