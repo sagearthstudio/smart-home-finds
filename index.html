@@ -1,12 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark light" />
   <title>Smart Home Finds</title>
   <meta name="description" content="Curated home decor & smart upgrades." />
+  <meta name="theme-color" content="#0b0c10" />
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://api.github.com" />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -26,36 +28,43 @@
         <a class="pill pill--primary" id="btnPinterest" target="_blank" rel="noopener">Pinterest</a>
         <a class="pill" id="btnInstagram" target="_blank" rel="noopener">Instagram</a>
         <a class="pill" id="btnLinktree" target="_blank" rel="noopener">Linktree</a>
-        <a class="pill pill--ghost" id="btnShop" href="#products">Shop Page</a>
+        <a class="pill pill--ghost" id="btnShop" href="#products">Shop</a>
       </div>
     </div>
 
     <div class="controls">
       <div class="search">
-        <input id="searchInput" type="search" placeholder="Search finds (e.g., candles, tray, wall art)..." autocomplete="off" />
+        <input id="searchInput" type="search" placeholder="Cerca (es. candles, wall art, tray)..." autocomplete="off" />
       </div>
 
-      <div class="chips" id="categoryChips" aria-label="Categories"></div>
+      <div class="chips" id="categoryChips" aria-label="Categorie"></div>
 
       <div class="toolbar">
-        <button class="btn" id="btnRefresh" type="button" title="Refresh products">⟳ Refresh</button>
+        <button class="btn" id="btnRefresh" type="button" title="Aggiorna prodotti">⟳ Refresh</button>
 
-        <button class="btn" id="btnAdmin" type="button" title="Admin area">🔒 Admin</button>
+        <button class="btn" id="btnAdmin" type="button" title="Modalità admin">
+          🔒 Admin
+        </button>
 
-        <button class="btn admin-only" id="btnToken" type="button" title="Connect GitHub Token">🔑 Token</button>
-        <button class="btn btn--primary admin-only" id="btnAddProduct" type="button" title="Add a new product">+ Add Product</button>
+        <button class="btn" id="btnToken" type="button" title="Connetti token GitHub" hidden>
+          🔑 Token
+        </button>
+
+        <button class="btn btn--primary" id="btnAddProduct" type="button" title="Aggiungi prodotto" hidden>
+          + Add Product
+        </button>
 
         <button class="btn btn--ghost" id="btnDisclosure" type="button" aria-expanded="false">Disclosure</button>
       </div>
 
       <div class="disclosure" id="disclosureBox" hidden>
         <p id="disclosureText">
-          Some links may be affiliate links. As an Amazon Associate I earn from qualifying purchases.
+          Alcuni link potrebbero essere link affiliati. Come Amazon Associate potrei guadagnare da acquisti idonei.
         </p>
       </div>
 
       <div class="status">
-        <span id="statusText">Loading products…</span>
+        <span id="statusText">Caricamento prodotti…</span>
       </div>
     </div>
   </header>
@@ -84,11 +93,11 @@
       <div class="card__body">
         <h3 class="card__title"></h3>
 
-        <button class="link notesBtn" type="button">Short Notes</button>
-
-        <div class="notesBox" hidden>
-          <div class="notesText"></div>
+        <div class="card__noteToggleRow">
+          <button class="noteToggle" type="button" aria-expanded="false" hidden>Short Notes</button>
         </div>
+
+        <div class="card__notes" hidden></div>
 
         <div class="card__tags"></div>
 
@@ -100,31 +109,30 @@
     </article>
   </template>
 
-  <!-- MODAL: Admin PIN -->
+  <!-- MODAL: Admin -->
   <div class="modal" id="adminModal" hidden aria-hidden="true">
     <div class="modal__overlay" data-close="admin"></div>
     <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
       <div class="modal__header">
-        <h2 id="adminTitle">Admin Area</h2>
-        <button class="iconbtn" type="button" data-close="admin" aria-label="Close">✕</button>
+        <h2 id="adminTitle">Modalità Admin</h2>
+        <button class="iconbtn" type="button" data-close="admin" aria-label="Chiudi">✕</button>
       </div>
 
       <div class="modal__body">
         <p class="muted">
-          Inserisci il PIN per sbloccare i pulsanti admin (Token / Add Product). Il PIN viene salvato solo su questo browser.
+          La modalità Admin serve solo a mostrare i pulsanti “Token” e “Add Product”.
+          <b>La vera sicurezza è il token:</b> senza un token con permessi sul tuo repo nessuno può pubblicare.
         </p>
 
         <label class="field">
           <span class="field__label">PIN Admin</span>
-          <input id="adminPinInput" type="password" placeholder="Inserisci PIN…" autocomplete="off" />
-          <span class="field__hint">
-            Suggerimento: dopo lo sblocco vedrai i pulsanti <b>🔑 Token</b> e <b>+ Add Product</b>.
-          </span>
+          <input id="adminPinInput" type="password" placeholder="Inserisci PIN..." autocomplete="off" />
+          <span class="field__hint">Suggerimento: è quello che mi hai chiesto (es. Serena05).</span>
         </label>
 
         <div class="row">
-          <button class="btn btn--primary" id="btnUnlockAdmin" type="button">Sblocca</button>
-          <button class="btn" id="btnLockAdmin" type="button">Blocca</button>
+          <button class="btn btn--primary" id="btnEnableAdmin" type="button">Abilita</button>
+          <button class="btn" id="btnDisableAdmin" type="button">Disabilita</button>
         </div>
 
         <div class="note" id="adminStatus"></div>
@@ -137,27 +145,27 @@
     <div class="modal__overlay" data-close="token"></div>
     <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
       <div class="modal__header">
-        <h2 id="tokenTitle">Connect GitHub Token</h2>
-        <button class="iconbtn" type="button" data-close="token" aria-label="Close">✕</button>
+        <h2 id="tokenTitle">Connetti GitHub Token</h2>
+        <button class="iconbtn" type="button" data-close="token" aria-label="Chiudi">✕</button>
       </div>
 
       <div class="modal__body">
         <p class="muted">
-          Paste a GitHub token to avoid API limits. It is saved only in your browser (localStorage), not in the repo.
+          Incolla un token GitHub per evitare limiti API. Viene salvato solo nel browser (localStorage), non nel repo.
         </p>
 
         <label class="field">
           <span class="field__label">GitHub Token</span>
-          <input id="tokenInput" type="password" placeholder="ghp_... or github_pat_..." autocomplete="off" />
+          <input id="tokenInput" type="password" placeholder="github_pat_..." autocomplete="off" />
           <span class="field__hint">
-            Per aggiungere prodotti dalla webapp ti serve un token con <b>Issues: Read and write</b>.
-            Per caricare immagini dalla galleria serve anche <b>Contents: Read and write</b>.
+            Per aggiungere prodotti dalla webapp serve un token con <b>Issues: Read and write</b>.
+            Per caricare foto serve anche <b>Contents: Read and write</b>.
           </span>
         </label>
 
         <div class="row">
-          <button class="btn btn--primary" id="btnSaveToken" type="button">Save Token</button>
-          <button class="btn" id="btnClearToken" type="button">Remove Token</button>
+          <button class="btn btn--primary" id="btnSaveToken" type="button">Salva token</button>
+          <button class="btn" id="btnClearToken" type="button">Rimuovi token</button>
         </div>
 
         <div class="note" id="tokenStatus"></div>
@@ -170,59 +178,60 @@
     <div class="modal__overlay" data-close="product"></div>
     <div class="modal__panel modal__panel--wide" role="dialog" aria-modal="true" aria-labelledby="productTitle">
       <div class="modal__header">
-        <h2 id="productTitle">Add Product</h2>
-        <button class="iconbtn" type="button" data-close="product" aria-label="Close">✕</button>
+        <h2 id="productTitle">Aggiungi Prodotto</h2>
+        <button class="iconbtn" type="button" data-close="product" aria-label="Chiudi">✕</button>
       </div>
 
       <div class="modal__body">
         <div class="grid2">
           <label class="field">
-            <span class="field__label">Product Title</span>
+            <span class="field__label">Titolo</span>
             <input id="pTitle" type="text" placeholder="e.g., Set of 2 Metal Wall Sconce Candle Holders" />
           </label>
 
           <label class="field">
-            <span class="field__label">Category</span>
+            <span class="field__label">Categoria</span>
             <select id="pCategory"></select>
           </label>
 
           <label class="field span2">
-            <span class="field__label">Pinterest Pin URL (required)</span>
-            <input id="pPinUrl" type="url" placeholder="https://pin.it/xxxx or https://www.pinterest.com/pin/..." />
+            <span class="field__label">Pinterest Pin URL (obbligatorio)</span>
+            <input id="pPinUrl" type="url" placeholder="https://pin.it/xxxx o https://www.pinterest.com/pin/..." />
           </label>
 
           <label class="field span2">
-            <span class="field__label">Destination / Affiliate URL (optional)</span>
+            <span class="field__label">Destination / Affiliate URL (opzionale)</span>
             <input id="pDestUrl" type="url" placeholder="https://amzn.to/xxxxxxx" />
+            <span class="field__hint">Tip: usa il marketplace corretto (US/UK).</span>
           </label>
 
           <label class="field span2">
-            <span class="field__label">Image URL (recommended)</span>
+            <span class="field__label">Image URL (opzionale)</span>
             <input id="pImageUrl" type="url" placeholder="https://i.pinimg.com/...jpg" />
-            <span class="field__hint">Se non carichi un file, usa un link diretto (i.pinimg.com) così la card mostra la foto.</span>
+            <span class="field__hint">Se non carichi una foto, usa un link diretto (i.pinimg.com) così la scheda mostra l’immagine.</span>
           </label>
 
           <label class="field span2">
-            <span class="field__label">Upload Image (optional)</span>
+            <span class="field__label">Upload Image (opzionale)</span>
             <input id="pImageFile" type="file" accept="image/*" />
-            <span class="field__hint">Da galleria. Richiede token con <b>Contents: Read and write</b>.</span>
+            <span class="field__hint">Scegli una foto dalla galleria. Richiede token con <b>Contents: Read and write</b>.</span>
           </label>
 
           <label class="field span2">
-            <span class="field__label">Tags (comma separated)</span>
+            <span class="field__label">Tags (separate da virgola)</span>
             <input id="pTags" type="text" placeholder="modern, minimalist, cozy, farmhouse" />
           </label>
 
           <label class="field span2">
-            <span class="field__label">Short Notes (optional)</span>
-            <textarea id="pNotes" rows="3" placeholder="Why it’s good / where to use it / gift idea…"></textarea>
+            <span class="field__label">Short Notes (opzionale)</span>
+            <textarea id="pNotes" rows="4" placeholder="Perché è utile / dove usarlo / idea regalo…"></textarea>
           </label>
         </div>
 
         <div class="row">
-          <button class="btn btn--primary" id="btnSubmitProduct" type="button">Publish Product</button>
-          <button class="btn" id="btnCancelProduct" type="button" data-close="product">Cancel</button>
-          <a class="btn btn--ghost" id="btnFallbackGitHub" target="_blank" rel="noopener">Open GitHub Form</a>
+          <button class="btn btn--primary" id="btnSubmitProduct" type="button">Pubblica</button>
+          <button class="btn" id="btnCancelProduct" type="button" data-close="product">Annulla</button>
+          <a class="btn btn--ghost" id="btnFallbackGitHub" target="_blank" rel="noopener">Apri GitHub Form</a>
         </div>
 
         <div class="note" id="productStatus"></div>
