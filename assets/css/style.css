@@ -475,3 +475,47 @@ h1{
     width: 100%;
   }
 }
+
+/* --------- CARD NOTES (toggle) --------- */
+.card__notes{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.card__notesBtn{
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.03);
+  color: rgba(255,255,255,.86);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  justify-self: start;
+}
+.card__notesBtn:hover{
+  background: rgba(255,255,255,.07);
+}
+
+.card__notesBox{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
+  color: rgba(255,255,255,.78);
+  font-size: 13px;
+  line-height: 1.35;
+
+  /* chiuso: massimo 3 righe */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card__notes.is-open .card__notesBox{
+  /* aperto: tutto */
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
