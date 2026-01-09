@@ -40,19 +40,10 @@
       <div class="toolbar">
         <button class="btn" id="btnRefresh" type="button" title="Refresh products">⟳ Refresh</button>
 
-        <!-- Admin unlock -->
-        <button class="btn" id="btnAdmin" type="button" title="Admin area">
-          🔒 Admin
-        </button>
+        <button class="btn" id="btnAdmin" type="button" title="Admin area">🔒 Admin</button>
 
-        <!-- Admin-only buttons (hidden until PIN unlock) -->
-        <button class="btn admin-only" id="btnToken" type="button" title="Connect GitHub Token">
-          🔑 Token
-        </button>
-
-        <button class="btn btn--primary admin-only" id="btnAddProduct" type="button" title="Add a new product">
-          + Add Product
-        </button>
+        <button class="btn admin-only" id="btnToken" type="button" title="Connect GitHub Token">🔑 Token</button>
+        <button class="btn btn--primary admin-only" id="btnAddProduct" type="button" title="Add a new product">+ Add Product</button>
 
         <button class="btn btn--ghost" id="btnDisclosure" type="button" aria-expanded="false">Disclosure</button>
       </div>
@@ -89,9 +80,18 @@
         <img class="card__img" loading="lazy" alt="" />
         <span class="badge"></span>
       </a>
+
       <div class="card__body">
         <h3 class="card__title"></h3>
+
+        <button class="link notesBtn" type="button">Short Notes</button>
+
+        <div class="notesBox" hidden>
+          <div class="notesText"></div>
+        </div>
+
         <div class="card__tags"></div>
+
         <div class="card__actions">
           <a class="link" target="_blank" rel="noopener">Open</a>
           <a class="link link--muted" target="_blank" rel="noopener">Pin</a>
@@ -194,19 +194,18 @@
           <label class="field span2">
             <span class="field__label">Destination / Affiliate URL (optional)</span>
             <input id="pDestUrl" type="url" placeholder="https://amzn.to/xxxxxxx" />
-            <span class="field__hint">Tip: use the correct marketplace link (US/UK).</span>
           </label>
 
           <label class="field span2">
             <span class="field__label">Image URL (recommended)</span>
             <input id="pImageUrl" type="url" placeholder="https://i.pinimg.com/...jpg" />
-            <span class="field__hint">If you don't upload a photo, use a direct image URL (i.pinimg.com) so the card shows the photo.</span>
+            <span class="field__hint">Se non carichi un file, usa un link diretto (i.pinimg.com) così la card mostra la foto.</span>
           </label>
 
           <label class="field span2">
             <span class="field__label">Upload Image (optional)</span>
             <input id="pImageFile" type="file" accept="image/*" />
-            <span class="field__hint">Choose a photo from your gallery. Requires token with <b>Contents: Read and write</b>.</span>
+            <span class="field__hint">Da galleria. Richiede token con <b>Contents: Read and write</b>.</span>
           </label>
 
           <label class="field span2">
