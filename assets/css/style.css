@@ -223,25 +223,18 @@ h1{
 }
 .card:hover{transform: translateY(-2px); background: rgba(255,255,255,.06);}
 
-/* ✅ PINS VERTICALI (Pinterest) */
 .card__media{
   position:relative;
   display:block;
-  aspect-ratio: 2 / 3;            /* ✅ verticale Pinterest */
+  aspect-ratio: 4 / 3;
   background: rgba(0,0,0,.28);
 }
-
-/* ✅ NON TAGLIARE PIÙ LE FOTO */
 .card__img{
-  width:100%;
-  height:100%;
-  object-fit: contain;             /* ✅ niente “mozzato” */
-  object-position: center;
+  width:100%; height:100%;
+  object-fit: cover;
   display:block;
-  background: rgba(0,0,0,.22);     /* bande eleganti se serve */
   filter: saturate(1.05) contrast(1.02);
 }
-
 .badge{
   position:absolute;
   left: 10px;
@@ -450,3 +443,7 @@ h1{
     width: 100%;
   }
 }
+
+/* ---- ADMIN LOCK (buttons hidden until PIN unlock) ---- */
+.admin-only{ display:none; }
+body.is-admin .admin-only{ display:inline-flex; }
