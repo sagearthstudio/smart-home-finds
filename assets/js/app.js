@@ -67,7 +67,7 @@
     pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
     instagram: 'https://www.instagram.com/sagearthstudio/',
     linktree: 'https://linktr.ee/sagearthstudio',
-    products: "https://www.pinterest.com/SmartlifeSmartIdeas/"
+    products: 'https://www.pinterest.com/SmartlifeSmartIdeas/',
   };
 
   // Categories for UI
@@ -157,12 +157,10 @@
   }
 
   function githubRepoUrl() {
-    // For project sites: https://github.com/{owner}/{repo}
     return `https://github.com/${owner}/${repo}`;
   }
 
   function githubIssueNewUrl() {
-    // Open the GitHub issue form template
     return `${githubRepoUrl()}/issues/new?template=add-product.yml`;
   }
 
@@ -170,15 +168,11 @@
   function parseIssueBody(body) {
     const text = (body || '').replace(/\r/g, '');
     const getField = (label) => {
-      // matches:
-      // Label
-      // value
       const re = new RegExp(`^\\s*${label}\\s*\\n+([^\\n]+)`, 'im');
       const m = text.match(re);
       return m ? m[1].trim() : '';
     };
 
-    // also accept "Label:" on same line
     const getFieldInline = (label) => {
       const re = new RegExp(`^\\s*${label}\\s*:\\s*([^\\n]+)`, 'im');
       const m = text.match(re);
@@ -217,7 +211,9 @@
     // Category: prefer parsed, else from labels
     let category = parsed.category && parsed.category !== 'No response' ? parsed.category : '';
     if (!category) {
-      const labelNames = (issue.labels || []).map((l) => (typeof l === 'string' ? l : l.name)).filter(Boolean);
+      const labelNames = (issue.labels || [])
+        .map((l) => (typeof l === 'string' ? l : l.name))
+        .filter(Boolean);
       const catLabel = labelNames.find((l) => l && l !== PRODUCT_LABEL);
       category = catLabel ? catLabel.replace(/-/g, ' ') : 'Accessories';
     }
@@ -285,14 +281,14 @@
     for (const p of items) {
       const node = els.cardTemplate.content.cloneNode(true);
 
-      const card = node.querySelector('.card');
       const media = node.querySelector('.card__media');
       const img = node.querySelector('.card__img');
       const badge = node.querySelector('.badge');
       const title = node.querySelector('.card__title');
-      const tags = node.querySelector('.card__tags');
+      const tagsWrap = node.querySelector('.card__tags');
       const linkOpen = node.querySelectorAll('.link')[0];
       const linkPin = node.querySelectorAll('.link')[1];
+      const body = node.querySelector('.card__body');
 
       title.textContent = p.title;
       badge.textContent = p.category || 'Product';
@@ -301,6 +297,7 @@
       if (p.imageUrl) {
         img.src = p.imageUrl;
         img.alt = p.title;
+        img.style.display = '';
       } else {
         img.alt = p.title;
         img.style.display = 'none';
@@ -317,13 +314,29 @@
       linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
 
       // Tags
-      tags.innerHTML = '';
+      tagsWrap.innerHTML = '';
       (p.tags || []).slice(0, 6).forEach((t) => {
         const s = document.createElement('span');
         s.className = 'tag';
         s.textContent = t;
-        tags.appendChild(s);
+        tagsWrap.appendChild(s);
       });
+
+      // ✅ Short Notes (FIX): show notes on the card
+      if (p.notes && body) {
+        const noteEl = document.createElement('p');
+        noteEl.className = 'card__note';
+        noteEl.textContent = p.notes;
+
+        // fallback inline style (so it works even if you don't add CSS)
+        noteEl.style.margin = '10px 0 0';
+        noteEl.style.fontSize = '12.5px';
+        noteEl.style.lineHeight = '1.45';
+        noteEl.style.color = 'rgba(255,255,255,.78)';
+        noteEl.style.whiteSpace = 'pre-line';
+
+        body.appendChild(noteEl);
+      }
 
       frag.appendChild(node);
     }
@@ -387,7 +400,6 @@
       throw err;
     }
 
-    // 204 no content
     if (res.status === 204) return null;
     return res.json();
   }
@@ -417,13 +429,12 @@
     try {
       const issues = await ghFetch(url);
       const products = (issues || [])
-        .filter((it) => !it.pull_request) // ignore PRs
+        .filter((it) => !it.pull_request)
         .map(productFromIssue);
 
       setStatus(`Loaded ${products.length} products.`);
       return products;
     } catch (e) {
-      // common: rate limit without token
       if (e.status === 403) {
         setStatus('Rate limited by GitHub. Tap “🔑 Token” and add a token (read-only is enough to load).');
       } else {
@@ -480,7 +491,6 @@
   }
 
   async function uploadImageToRepo(file) {
-    // Upload to /uploads/ and return raw URL
     const t = getToken();
     if (!t) {
       throw new Error('No token saved. To upload an image you need a token with Contents: Read and write.');
@@ -500,7 +510,7 @@
     const filename = `uploads/${stamp}-${Math.random().toString(16).slice(2)}.${safeExt}`;
 
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filename)}`;
-    const res = await ghFetch(url, {
+    await ghFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -509,16 +519,14 @@
       }),
     });
 
-    // Use raw link so it can be displayed directly
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filename}`;
-    return rawUrl;
+    return `https://raw.githubusercontent.com/${owner}/${repo}/main/${filename}`;
   }
 
   // ---------- Events ----------
   function wireHeaderLinks() {
-    els.btnPinterest.href = LINKS.pinterest;
-    els.btnInstagram.href = LINKS.instagram;
-    els.btnLinktree.href = LINKS.linktree;
+    if (els.btnPinterest) els.btnPinterest.href = LINKS.pinterest;
+    if (els.btnInstagram) els.btnInstagram.href = LINKS.instagram;
+    if (els.btnLinktree) els.btnLinktree.href = LINKS.linktree;
   }
 
   function wireToolbar() {
@@ -527,7 +535,6 @@
     });
 
     els.btnToken?.addEventListener('click', () => {
-      // prefill
       const t = getToken();
       els.tokenInput.value = t ? t : '';
       setNote(els.tokenStatus, t ? 'Token loaded from this browser.' : 'No token saved yet.', t ? 'ok' : '');
@@ -535,7 +542,6 @@
     });
 
     els.btnAddProduct?.addEventListener('click', () => {
-      // Fill categories in select
       els.pCategory.innerHTML = '';
       CATEGORIES.filter((c) => c !== 'All').forEach((c) => {
         const opt = document.createElement('option');
@@ -544,7 +550,6 @@
         els.pCategory.appendChild(opt);
       });
 
-      // Default values
       els.pTitle.value = '';
       els.pPinUrl.value = '';
       els.pDestUrl.value = '';
@@ -604,7 +609,6 @@
         let imageUrl = normalizeUrl(els.pImageUrl.value);
         const file = els.pImageFile?.files?.[0];
 
-        // If user selected a file, upload it to the repo and use that URL
         if (file) {
           setNote(els.productStatus, 'Uploading image to GitHub…', '');
           imageUrl = await uploadImageToRepo(file);
@@ -623,14 +627,12 @@
         setNote(els.productStatus, 'Creating GitHub issue…', '');
         const issue = await createProductIssue(product);
 
-        // Immediately show it on the page
         const newProd = productFromIssue(issue);
         allProducts = [newProd, ...allProducts];
         renderProducts();
 
         setNote(els.productStatus, '✅ Published! It is now visible on the webapp.', 'ok');
 
-        // Close after a short delay (better UX on mobile)
         await sleep(650);
         closeModal('product');
       } catch (e) {
@@ -670,7 +672,6 @@
   async function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      // Important: for project sites, this must be relative
       await navigator.serviceWorker.register('./sw.js', { scope: './' });
     } catch {
       // ignore
