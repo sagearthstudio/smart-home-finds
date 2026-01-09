@@ -1,6 +1,6 @@
 /* Smart Home Finds — app.js
    - Reads products from GitHub Issues (label: "product")
-   - SECURITY: shows ONLY issues created by repo owner (prevents others from injecting products)
+   - SECURITY: shows ONLY issues created by repo owner
    - Adds products by creating a new Issue (requires token)
    - Optional image upload: commits file into /uploads and uses raw GitHub URL
    - Admin PIN gate: shows admin buttons only after PIN unlock
@@ -10,15 +10,12 @@
 (() => {
   'use strict';
 
-  // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
 
   const els = {
     year: $('year'),
     brandName: $('brandName'),
     brandNameFooter: $('brandNameFooter'),
-    brandTagline: $('brandTagline'),
-    logoText: $('logoText'),
 
     btnPinterest: $('btnPinterest'),
     btnInstagram: $('btnInstagram'),
@@ -36,21 +33,18 @@
     btnDisclosure: $('btnDisclosure'),
     disclosureBox: $('disclosureBox'),
 
-    // Admin modal
     adminModal: $('adminModal'),
     adminPinInput: $('adminPinInput'),
     btnUnlockAdmin: $('btnUnlockAdmin'),
     btnLockAdmin: $('btnLockAdmin'),
     adminStatus: $('adminStatus'),
 
-    // Token modal
     tokenModal: $('tokenModal'),
     tokenInput: $('tokenInput'),
     btnSaveToken: $('btnSaveToken'),
     btnClearToken: $('btnClearToken'),
     tokenStatus: $('tokenStatus'),
 
-    // Product modal
     productModal: $('productModal'),
     pTitle: $('pTitle'),
     pCategory: $('pCategory'),
@@ -61,25 +55,21 @@
     pTags: $('pTags'),
     pNotes: $('pNotes'),
     btnSubmitProduct: $('btnSubmitProduct'),
-    btnCancelProduct: $('btnCancelProduct'),
     btnFallbackGitHub: $('btnFallbackGitHub'),
     productStatus: $('productStatus'),
 
     cardTemplate: document.getElementById('cardTemplate'),
   };
 
-  // ---------- Config (auto-detected for GitHub Pages project sites) ----------
   const owner = (location.hostname.split('.')[0] || '').trim();
   const repo = (location.pathname.split('/').filter(Boolean)[0] || '').trim();
 
-  // Social links (customize if you want)
   const LINKS = {
     pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
     instagram: 'https://www.instagram.com/sagearthstudio/',
     linktree: 'https://linktr.ee/sagearthstudio',
   };
 
-  // Categories for UI
   const CATEGORIES = [
     'All',
     'Candles',
@@ -93,22 +83,17 @@
     'Smart',
   ];
 
-  // Labels
   const PRODUCT_LABEL = 'product';
 
-  // Storage keys
   const LS_TOKEN = 'shf_github_token';
   const LS_ADMIN = 'shf_admin_unlocked_v1';
 
-  // Admin PIN (requested)
   const ADMIN_PIN = 'Serena05';
 
-  // ---------- State ----------
   let allProducts = [];
   let activeCategory = 'All';
   let searchQuery = '';
 
-  // ---------- Helpers ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function setStatus(text) {
@@ -126,11 +111,7 @@
   function normalizeUrl(url) {
     const u = (url || '').trim();
     if (!u) return '';
-    try {
-      return new URL(u).toString();
-    } catch {
-      return u;
-    }
+    try { return new URL(u).toString(); } catch { return u; }
   }
 
   function splitTags(tags) {
@@ -156,13 +137,8 @@
   function authHeaders() {
     const t = getToken();
     return t
-      ? {
-          Authorization: `Bearer ${t}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-        }
-      : {
-          'X-GitHub-Api-Version': '2022-11-28',
-        };
+      ? { Authorization: `Bearer ${t}`, 'X-GitHub-Api-Version': '2022-11-28' }
+      : { 'X-GitHub-Api-Version': '2022-11-28' };
   }
 
   function isAdminUnlocked() {
@@ -183,7 +159,6 @@
     return `${githubRepoUrl()}/issues/new?template=add-product.yml`;
   }
 
-  // Parse issue body from the issue-form template or from webapp-created markdown
   function parseIssueBody(body) {
     const text = (body || '').replace(/\r/g, '');
     const getField = (label) => {
@@ -232,26 +207,20 @@
       category = catLabel ? catLabel.replace(/-/g, ' ') : 'Accessories';
     }
 
-    const tags = splitTags(parsed.tags && parsed.tags !== 'No response' ? parsed.tags : '');
-    const pinUrl = parsed.pinUrl || '';
-    const destUrl = parsed.destUrl || '';
-    const imageUrl = parsed.imageUrl || '';
-
     return {
       id: issue.number,
       issueUrl: issue.html_url,
       createdAt: issue.created_at,
       title: title || `Product #${issue.number}`,
       category: category || 'Accessories',
-      tags,
-      pinUrl,
-      destUrl,
-      imageUrl,
+      tags: splitTags(parsed.tags && parsed.tags !== 'No response' ? parsed.tags : ''),
+      pinUrl: parsed.pinUrl || '',
+      destUrl: parsed.destUrl || '',
+      imageUrl: parsed.imageUrl || '',
       notes: parsed.notes && parsed.notes !== 'No response' ? parsed.notes : '',
     };
   }
 
-  // ---------- UI ----------
   function renderChips() {
     if (!els.categoryChips) return;
     els.categoryChips.innerHTML = '';
@@ -277,6 +246,16 @@
     return catOk && hay.includes(q);
   }
 
+  function closeAllNotesExcept(currentCard) {
+    document.querySelectorAll('.card').forEach((c) => {
+      if (c === currentCard) return;
+      const box = c.querySelector('.notesBox');
+      const btn = c.querySelector('.notesBtn');
+      if (box && !box.hidden) box.hidden = true;
+      if (btn) btn.textContent = 'Short Notes';
+    });
+  }
+
   function renderProducts() {
     if (!els.productGrid || !els.cardTemplate) return;
     els.productGrid.innerHTML = '';
@@ -291,21 +270,27 @@
     }
 
     const frag = document.createDocumentFragment();
+
     for (const p of items) {
       const node = els.cardTemplate.content.cloneNode(true);
 
+      const card = node.querySelector('.card');
       const media = node.querySelector('.card__media');
       const img = node.querySelector('.card__img');
       const badge = node.querySelector('.badge');
       const title = node.querySelector('.card__title');
       const tags = node.querySelector('.card__tags');
+
+      const notesBtn = node.querySelector('.notesBtn');
+      const notesBox = node.querySelector('.notesBox');
+      const notesText = node.querySelector('.notesText');
+
       const linkOpen = node.querySelectorAll('.link')[0];
       const linkPin = node.querySelectorAll('.link')[1];
 
       title.textContent = p.title;
       badge.textContent = p.category || 'Product';
 
-      // Image
       if (p.imageUrl) {
         img.src = p.imageUrl;
         img.alt = p.title;
@@ -322,6 +307,7 @@
       linkPin.href = p.pinUrl || p.issueUrl;
       linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
 
+      // Tags
       tags.innerHTML = '';
       (p.tags || []).slice(0, 6).forEach((t) => {
         const s = document.createElement('span');
@@ -330,56 +316,29 @@
         tags.appendChild(s);
       });
 
+      // Notes toggle
+      const hasNotes = !!(p.notes && p.notes.trim());
+      if (!hasNotes) {
+        notesBtn.style.display = 'none';
+        notesBox.hidden = true;
+      } else {
+        notesText.textContent = p.notes.trim();
+        notesBox.hidden = true;
+
+        notesBtn.addEventListener('click', () => {
+          const willOpen = notesBox.hidden;
+          closeAllNotesExcept(card);
+          notesBox.hidden = !willOpen;
+          notesBtn.textContent = willOpen ? 'Chiudi note' : 'Short Notes';
+        });
+      }
+
       frag.appendChild(node);
     }
+
     els.productGrid.appendChild(frag);
   }
 
-  // ---------- Modals ----------
-  function openModal(which) {
-    const el =
-      which === 'token' ? els.tokenModal :
-      which === 'product' ? els.productModal :
-      which === 'admin' ? els.adminModal :
-      null;
-    if (!el) return;
-    el.hidden = false;
-    el.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModal(which) {
-    const el =
-      which === 'token' ? els.tokenModal :
-      which === 'product' ? els.productModal :
-      which === 'admin' ? els.adminModal :
-      null;
-    if (!el) return;
-    el.hidden = true;
-    el.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-  }
-
-  function wireModalClose() {
-    document.querySelectorAll('[data-close]').forEach((x) => {
-      x.addEventListener('click', (e) => {
-        const which = e.currentTarget.getAttribute('data-close');
-        if (which === 'token') closeModal('token');
-        if (which === 'product') closeModal('product');
-        if (which === 'admin') closeModal('admin');
-      });
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeModal('token');
-        closeModal('product');
-        closeModal('admin');
-      }
-    });
-  }
-
-  // ---------- GitHub API ----------
   async function ghFetch(url, options = {}) {
     const headers = {
       Accept: 'application/vnd.github+json',
@@ -433,12 +392,11 @@
       const filtered = (issues || []).filter((it) => !it.pull_request && it?.user?.login === owner);
 
       const products = filtered.map(productFromIssue);
-
       setStatus(`Loaded ${products.length} products.`);
       return products;
     } catch (e) {
       if (e.status === 403) {
-        setStatus('Rate limited by GitHub. Tap “🔑 Token” (after Admin unlock) and add a token (read-only is enough to load).');
+        setStatus('Rate limited by GitHub. Tap “🔑 Token” (after Admin unlock) and add a token.');
       } else {
         setStatus(`Error loading products: ${e.message}`);
       }
@@ -448,9 +406,7 @@
 
   async function createProductIssue(product) {
     const t = getToken();
-    if (!t) {
-      throw new Error('Nessun token salvato. Vai su 🔑 Token e incolla un token con Issues: Read and write.');
-    }
+    if (!t) throw new Error('Nessun token salvato. Vai su 🔑 Token e incolla un token con Issues: Read and write.');
 
     const title = (product.title || '').trim() || 'New product';
     const category = (product.category || 'Accessories').trim() || 'Accessories';
@@ -483,20 +439,16 @@
     const labels = [PRODUCT_LABEL, slugifyLabel(category)].filter(Boolean);
 
     const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
-    const created = await ghFetch(url, {
+    return ghFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: `Add product: ${title}`, body, labels }),
     });
-
-    return created;
   }
 
   async function uploadImageToRepo(file) {
     const t = getToken();
-    if (!t) {
-      throw new Error('Nessun token salvato. Per caricare un’immagine serve un token con Contents: Read and write.');
-    }
+    if (!t) throw new Error('Nessun token salvato. Per caricare un’immagine serve Contents: Read and write.');
 
     const arrayBuf = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuf);
@@ -514,16 +466,53 @@
     await ghFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: `Add product image ${filename}`,
-        content,
-      }),
+      body: JSON.stringify({ message: `Add product image ${filename}`, content }),
     });
 
     return `https://raw.githubusercontent.com/${owner}/${repo}/main/${filename}`;
   }
 
-  // ---------- Events ----------
+  function openModal(which) {
+    const el =
+      which === 'token' ? els.tokenModal :
+      which === 'product' ? els.productModal :
+      which === 'admin' ? els.adminModal :
+      null;
+    if (!el) return;
+    el.hidden = false;
+    el.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(which) {
+    const el =
+      which === 'token' ? els.tokenModal :
+      which === 'product' ? els.productModal :
+      which === 'admin' ? els.adminModal :
+      null;
+    if (!el) return;
+    el.hidden = true;
+    el.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function wireModalClose() {
+    document.querySelectorAll('[data-close]').forEach((x) => {
+      x.addEventListener('click', (e) => {
+        const which = e.currentTarget.getAttribute('data-close');
+        closeModal(which);
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal('token');
+        closeModal('product');
+        closeModal('admin');
+      }
+    });
+  }
+
   function wireHeaderLinks() {
     els.btnPinterest.href = LINKS.pinterest;
     els.btnInstagram.href = LINKS.instagram;
@@ -531,9 +520,7 @@
   }
 
   function wireToolbar() {
-    els.btnRefresh?.addEventListener('click', async () => {
-      await reloadProducts(true);
-    });
+    els.btnRefresh?.addEventListener('click', async () => reloadProducts(true));
 
     els.btnAdmin?.addEventListener('click', () => {
       const unlocked = isAdminUnlocked();
@@ -588,14 +575,8 @@
   function wireAdminModal() {
     els.btnUnlockAdmin?.addEventListener('click', () => {
       const pin = (els.adminPinInput.value || '').trim();
-      if (!pin) {
-        setNote(els.adminStatus, 'Inserisci il PIN.', 'bad');
-        return;
-      }
-      if (pin !== ADMIN_PIN) {
-        setNote(els.adminStatus, '❌ PIN errato.', 'bad');
-        return;
-      }
+      if (!pin) return setNote(els.adminStatus, 'Inserisci il PIN.', 'bad');
+      if (pin !== ADMIN_PIN) return setNote(els.adminStatus, '❌ PIN errato.', 'bad');
       setAdminUnlocked(true);
       setNote(els.adminStatus, '✅ Admin sbloccato! Ora vedi Token e Add Product.', 'ok');
       setTimeout(() => closeModal('admin'), 550);
@@ -610,10 +591,7 @@
   function wireTokenModal() {
     els.btnSaveToken?.addEventListener('click', async () => {
       const t = (els.tokenInput.value || '').trim();
-      if (!t) {
-        setNote(els.tokenStatus, 'Incolla prima un token.', 'bad');
-        return;
-      }
+      if (!t) return setNote(els.tokenStatus, 'Incolla prima un token.', 'bad');
       localStorage.setItem(LS_TOKEN, t);
       await validateToken();
     });
@@ -676,7 +654,6 @@
     });
   }
 
-  // ---------- Load ----------
   async function reloadProducts(showSpinner) {
     if (showSpinner) setStatus('Refreshing…');
     const products = await fetchProductsFromIssues();
@@ -700,15 +677,13 @@
     wireAdminModal();
     wireTokenModal();
     wireProductModal();
-    renderProducts();
 
-    // apply admin UI state at start
     document.body.classList.toggle('is-admin', isAdminUnlocked());
 
+    renderProducts();
     reloadProducts(false);
   }
 
-  // ---------- PWA (installable) ----------
   async function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     try {
