@@ -160,33 +160,56 @@
     return `${githubRepoUrl()}/issues/new?template=add-product.yml`;
   }
 
+  function escapeRegExp(s) {
+    return (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   // Parse issue body from the issue-form template or from webapp-created markdown
   function parseIssueBody(body) {
     const text = (body || '').replace(/\r/g, '');
 
-    const getField = (label) => {
-      // matches:
-      // Label
-      // value
-      const re = new RegExp(`^\\s*${label}\\s*\\n+([^\\n]+)`, 'im');
-      const m = text.match(re);
-      return m ? m[1].trim() : '';
-    };
+    const LABELS = [
+      'Pinterest Pin URL',
+      'Destination / Affiliate URL',
+      'Image URL',
+      'Title',
+      'Category',
+      'Tags',
+      'Short Notes',
+    ];
+    const LABELS_RE = LABELS.map(escapeRegExp).join('|');
 
-    // also accept "Label:" on same line
-    const getFieldInline = (label) => {
-      const re = new RegExp(`^\\s*${label}\\s*:\\s*([^\\n]+)`, 'im');
+    // 1) support markdown headings like "### Short Notes (optional)"
+    function readSection(label) {
+      const re = new RegExp(
+        `^\\s*(?:#{1,6}\\s*)?${escapeRegExp(label)}\\b[^\\n]*\\n+([\\s\\S]*?)(?=\\n\\s*(?:#{1,6}\\s*)?(?:${LABELS_RE})\\b|\\n\\s*$)`,
+        'im'
+      );
       const m = text.match(re);
-      return m ? m[1].trim() : '';
-    };
+      return m ? (m[1] || '').trim() : '';
+    }
 
-    const pinUrl = normalizeUrl(getField('Pinterest Pin URL') || getFieldInline('Pinterest Pin URL'));
-    const destUrl = normalizeUrl(getField('Destination / Affiliate URL') || getFieldInline('Destination / Affiliate URL'));
-    const imageUrl = normalizeUrl(getField('Image URL') || getFieldInline('Image URL'));
-    const title = (getField('Title') || getFieldInline('Title')).trim();
-    const category = (getField('Category') || getFieldInline('Category')).trim();
-    const tags = (getField('Tags') || getFieldInline('Tags')).trim();
-    const notes = (getField('Short Notes') || getFieldInline('Short Notes')).trim();
+    // 2) fallback for simple "Label\\nvalue" (webapp body)
+    function readLine(label) {
+      const re = new RegExp(`^\\s*${escapeRegExp(label)}\\s*\\n+([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? (m[1] || '').trim() : '';
+    }
+
+    // 3) also accept "Label: value"
+    function readInline(label) {
+      const re = new RegExp(`^\\s*(?:#{1,6}\\s*)?${escapeRegExp(label)}\\s*:\\s*([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? (m[1] || '').trim() : '';
+    }
+
+    const pinUrl = normalizeUrl(readSection('Pinterest Pin URL') || readLine('Pinterest Pin URL') || readInline('Pinterest Pin URL'));
+    const destUrl = normalizeUrl(readSection('Destination / Affiliate URL') || readLine('Destination / Affiliate URL') || readInline('Destination / Affiliate URL'));
+    const imageUrl = normalizeUrl(readSection('Image URL') || readLine('Image URL') || readInline('Image URL'));
+    const title = (readSection('Title') || readLine('Title') || readInline('Title')).trim();
+    const category = (readSection('Category') || readLine('Category') || readInline('Category')).trim();
+    const tags = (readSection('Tags') || readLine('Tags') || readInline('Tags')).trim();
+    const notes = (readSection('Short Notes') || readLine('Short Notes') || readInline('Short Notes')).trim();
 
     // If users paste an image upload markdown like: ![alt](https://user-images.githubusercontent.com/...)
     const uploadImgMatch = text.match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/i);
@@ -220,7 +243,6 @@
     }
 
     const tags = splitTags(parsed.tags && parsed.tags !== 'No response' ? parsed.tags : '');
-
     const pinUrl = parsed.pinUrl || '';
     const destUrl = parsed.destUrl || '';
     const imageUrl = parsed.imageUrl || '';
@@ -263,44 +285,46 @@
     const q = searchQuery.trim().toLowerCase();
     if (!q) return catOk;
 
-    // include notes in search ✅
     const hay = `${p.title} ${p.category} ${(p.tags || []).join(' ')} ${p.notes || ''}`.toLowerCase();
     return catOk && hay.includes(q);
   }
 
-  function makeNotesElement(notesText) {
+  // ✅ NOTE TOGGLE (bottone + box apri/chiudi)
+  function makeNotesToggle(notesText) {
     const txt = (notesText || '').trim();
     if (!txt) return null;
 
-    const p = document.createElement('p');
-    p.className = 'card__note';
-    p.textContent = txt;
-    p.setAttribute('role', 'button');
-    p.setAttribute('tabindex', '0');
-    p.setAttribute('aria-expanded', 'false');
-    p.title = 'Tap to expand / collapse';
+    const wrap = document.createElement('div');
+    wrap.className = 'card__notes';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'card__notesBtn';
+    btn.textContent = 'Note';
+
+    const box = document.createElement('div');
+    box.className = 'card__notesBox';
+    box.textContent = txt;
+    box.hidden = true;
+    box.setAttribute('aria-hidden', 'true');
 
     const toggle = () => {
-      const open = p.classList.toggle('is-open');
-      p.setAttribute('aria-expanded', String(open));
+      const isOpen = !box.hidden;
+      box.hidden = isOpen;
+      box.setAttribute('aria-hidden', String(isOpen));
+      wrap.classList.toggle('is-open', !isOpen);
+      btn.textContent = isOpen ? 'Note' : 'Chiudi note';
     };
 
-    // tap/click toggle
-    p.addEventListener('click', (e) => {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       toggle();
     });
 
-    // keyboard toggle (Enter / Space)
-    p.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggle();
-      }
-    });
-
-    return p;
+    wrap.appendChild(btn);
+    wrap.appendChild(box);
+    return wrap;
   }
 
   function renderProducts() {
@@ -311,7 +335,7 @@
     if (!items.length) {
       const empty = document.createElement('div');
       empty.className = 'note';
-      empty.textContent = 'No products found. Try Refresh or clear filters.';
+      empty.textContent = 'Nessun prodotto trovato. Premi Refresh o azzera i filtri.';
       els.productGrid.appendChild(empty);
       return;
     }
@@ -361,10 +385,10 @@
         tagsWrap.appendChild(s);
       });
 
-      // ✅ Short Notes (with expand/collapse)
+      // ✅ Notes toggle
       if (body) {
-        const noteEl = makeNotesElement(p.notes);
-        if (noteEl) body.appendChild(noteEl);
+        const notesToggle = makeNotesToggle(p.notes);
+        if (notesToggle) body.appendChild(notesToggle);
       }
 
       frag.appendChild(node);
@@ -448,11 +472,11 @@
 
   async function fetchProductsFromIssues() {
     if (!owner || !repo) {
-      setStatus('This site is designed for GitHub Pages project sites (username.github.io/repo).');
+      setStatus('Questo sito è pensato per GitHub Pages tipo: username.github.io/repo');
       return [];
     }
 
-    setStatus('Loading products from GitHub issues…');
+    setStatus('Carico prodotti dalle Issues…');
     const url = `https://api.github.com/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(PRODUCT_LABEL)}&state=open&per_page=100&sort=created&direction=desc`;
 
     try {
@@ -461,13 +485,13 @@
         .filter((it) => !it.pull_request)
         .map(productFromIssue);
 
-      setStatus(`Loaded ${products.length} products.`);
+      setStatus(`Caricati ${products.length} prodotti.`);
       return products;
     } catch (e) {
       if (e.status === 403) {
-        setStatus('Rate limited by GitHub. Tap “🔑 Token” and add a token (read-only is enough to load).');
+        setStatus('Limite GitHub raggiunto. Premi “🔑 Token” e inserisci un token (read-only basta per leggere).');
       } else {
-        setStatus(`Error loading products: ${e.message}`);
+        setStatus(`Errore caricamento: ${e.message}`);
       }
       return [];
     }
@@ -476,7 +500,7 @@
   async function createProductIssue(product) {
     const t = getToken();
     if (!t) {
-      throw new Error('No token saved. Tap “🔑 Token” and paste a token with Issues: Read and write.');
+      throw new Error('Nessun token salvato. Premi “🔑 Token” e inserisci un token con Issues: Read and write.');
     }
 
     const title = (product.title || '').trim() || 'New product';
@@ -522,13 +546,12 @@
   async function uploadImageToRepo(file) {
     const t = getToken();
     if (!t) {
-      throw new Error('No token saved. To upload an image you need a token with Contents: Read and write.');
+      throw new Error('Nessun token salvato. Per caricare immagini serve Contents: Read and write.');
     }
 
     const arrayBuf = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuf);
 
-    // base64 encode
     let binary = '';
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     const content = btoa(binary);
@@ -566,7 +589,7 @@
     els.btnToken?.addEventListener('click', () => {
       const t = getToken();
       els.tokenInput.value = t ? t : '';
-      setNote(els.tokenStatus, t ? 'Token loaded from this browser.' : 'No token saved yet.', t ? 'ok' : '');
+      setNote(els.tokenStatus, t ? 'Token caricato in questo browser.' : 'Nessun token salvato.', t ? 'ok' : '');
       openModal('token');
     });
 
@@ -579,7 +602,6 @@
         els.pCategory.appendChild(opt);
       });
 
-      // Default values
       els.pTitle.value = '';
       els.pPinUrl.value = '';
       els.pDestUrl.value = '';
@@ -611,7 +633,7 @@
     els.btnSaveToken?.addEventListener('click', async () => {
       const t = (els.tokenInput.value || '').trim();
       if (!t) {
-        setNote(els.tokenStatus, 'Paste a token first.', 'bad');
+        setNote(els.tokenStatus, 'Incolla un token prima.', 'bad');
         return;
       }
       localStorage.setItem(LS_TOKEN, t);
@@ -621,27 +643,26 @@
     els.btnClearToken?.addEventListener('click', () => {
       localStorage.removeItem(LS_TOKEN);
       els.tokenInput.value = '';
-      setNote(els.tokenStatus, 'Token removed from this browser.', 'ok');
+      setNote(els.tokenStatus, 'Token rimosso da questo browser.', 'ok');
     });
   }
 
   function wireProductModal() {
     els.btnSubmitProduct?.addEventListener('click', async () => {
       try {
-        setNote(els.productStatus, 'Publishing…', '');
+        setNote(els.productStatus, 'Pubblico…', '');
 
         const pinUrl = normalizeUrl(els.pPinUrl.value);
         if (!pinUrl) {
-          setNote(els.productStatus, 'Pinterest Pin URL is required.', 'bad');
+          setNote(els.productStatus, 'Pinterest Pin URL è obbligatorio.', 'bad');
           return;
         }
 
         let imageUrl = normalizeUrl(els.pImageUrl.value);
         const file = els.pImageFile?.files?.[0];
 
-        // If user selected a file, upload it to the repo and use that URL
         if (file) {
-          setNote(els.productStatus, 'Uploading image to GitHub…', '');
+          setNote(els.productStatus, 'Carico immagine su GitHub…', '');
           imageUrl = await uploadImageToRepo(file);
         }
 
@@ -655,17 +676,15 @@
           notes: (els.pNotes.value || '').trim(),
         };
 
-        setNote(els.productStatus, 'Creating GitHub issue…', '');
+        setNote(els.productStatus, 'Creo Issue su GitHub…', '');
         const issue = await createProductIssue(product);
 
-        // Immediately show it on the page
         const newProd = productFromIssue(issue);
         allProducts = [newProd, ...allProducts];
         renderProducts();
 
-        setNote(els.productStatus, '✅ Published! It is now visible on the webapp.', 'ok');
+        setNote(els.productStatus, '✅ Pubblicato! Ora è visibile nella webapp.', 'ok');
 
-        // Close after a short delay (better UX on mobile)
         await sleep(650);
         closeModal('product');
       } catch (e) {
@@ -676,7 +695,7 @@
 
   // ---------- Load ----------
   async function reloadProducts(showSpinner) {
-    if (showSpinner) setStatus('Refreshing…');
+    if (showSpinner) setStatus('Aggiorno…');
     const products = await fetchProductsFromIssues();
     allProducts = products;
     renderProducts();
@@ -705,7 +724,6 @@
   async function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      // Important: for project sites, this must be relative
       await navigator.serviceWorker.register('./sw.js', { scope: './' });
     } catch {
       // ignore
