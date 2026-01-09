@@ -6,12 +6,7 @@
   <meta name="color-scheme" content="dark light" />
   <title>Smart Home Finds</title>
   <meta name="description" content="Curated home decor & smart upgrades." />
-
-  <meta name="theme-color" content="#0b0c10" />
-  <link rel="manifest" href="manifest.webmanifest" />
-
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="assets/img/icon-192.png" />
   <link rel="preconnect" href="https://api.github.com" />
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -28,10 +23,10 @@
       </div>
 
       <div class="hero__actions">
-        <a class="pill pill--primary" id="btnPinterest" href="https://www.pinterest.com/SmartlifeSmartIdeas/" target="_blank" rel="noopener">Pinterest</a>
-        <a class="pill" id="btnInstagram" href="https://www.instagram.com/sagearthstudio/" target="_blank" rel="noopener">Instagram</a>
-        <a class="pill" id="btnLinktree" href="https://linktr.ee/sagearthstudio" target="_blank" rel="noopener">Linktree</a>
-        <a class="pill pill--ghost" id="btnShop" href="https://www.pinterest.com/SmartlifeSmartIdeas/" target="_blank" rel="noopener">Shop Page</a>
+        <a class="pill pill--primary" id="btnPinterest" target="_blank" rel="noopener">Pinterest</a>
+        <a class="pill" id="btnInstagram" target="_blank" rel="noopener">Instagram</a>
+        <a class="pill" id="btnLinktree" target="_blank" rel="noopener">Linktree</a>
+        <a class="pill pill--ghost" id="btnShop" href="#products">Shop Page</a>
       </div>
     </div>
 
@@ -45,11 +40,17 @@
       <div class="toolbar">
         <button class="btn" id="btnRefresh" type="button" title="Refresh products">⟳ Refresh</button>
 
-        <button class="btn" id="btnToken" type="button" title="Connect GitHub Token">
+        <!-- Admin unlock -->
+        <button class="btn" id="btnAdmin" type="button" title="Admin area">
+          🔒 Admin
+        </button>
+
+        <!-- Admin-only buttons (hidden until PIN unlock) -->
+        <button class="btn admin-only" id="btnToken" type="button" title="Connect GitHub Token">
           🔑 Token
         </button>
 
-        <button class="btn btn--primary" id="btnAddProduct" type="button" title="Add a new product">
+        <button class="btn btn--primary admin-only" id="btnAddProduct" type="button" title="Add a new product">
           + Add Product
         </button>
 
@@ -99,6 +100,38 @@
     </article>
   </template>
 
+  <!-- MODAL: Admin PIN -->
+  <div class="modal" id="adminModal" hidden aria-hidden="true">
+    <div class="modal__overlay" data-close="admin"></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+      <div class="modal__header">
+        <h2 id="adminTitle">Admin Area</h2>
+        <button class="iconbtn" type="button" data-close="admin" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal__body">
+        <p class="muted">
+          Inserisci il PIN per sbloccare i pulsanti admin (Token / Add Product). Il PIN viene salvato solo su questo browser.
+        </p>
+
+        <label class="field">
+          <span class="field__label">PIN Admin</span>
+          <input id="adminPinInput" type="password" placeholder="Inserisci PIN…" autocomplete="off" />
+          <span class="field__hint">
+            Suggerimento: dopo lo sblocco vedrai i pulsanti <b>🔑 Token</b> e <b>+ Add Product</b>.
+          </span>
+        </label>
+
+        <div class="row">
+          <button class="btn btn--primary" id="btnUnlockAdmin" type="button">Sblocca</button>
+          <button class="btn" id="btnLockAdmin" type="button">Blocca</button>
+        </div>
+
+        <div class="note" id="adminStatus"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: GitHub Token -->
   <div class="modal" id="tokenModal" hidden aria-hidden="true">
     <div class="modal__overlay" data-close="token"></div>
@@ -110,16 +143,15 @@
 
       <div class="modal__body">
         <p class="muted">
-          Paste a GitHub token to avoid API limits and (optionally) publish products.
-          The token is saved only in your browser (localStorage), not in the repo.
+          Paste a GitHub token to avoid API limits. It is saved only in your browser (localStorage), not in the repo.
         </p>
 
         <label class="field">
           <span class="field__label">GitHub Token</span>
-          <input id="tokenInput" type="password" placeholder="github_pat_..." autocomplete="off" />
+          <input id="tokenInput" type="password" placeholder="ghp_... or github_pat_..." autocomplete="off" />
           <span class="field__hint">
-            To publish products from the webapp you need: <b>Issues: Read and write</b>.
-            To upload a photo from your phone gallery you also need: <b>Contents: Read and write</b>.
+            Per aggiungere prodotti dalla webapp ti serve un token con <b>Issues: Read and write</b>.
+            Per caricare immagini dalla galleria serve anche <b>Contents: Read and write</b>.
           </span>
         </label>
 
@@ -166,7 +198,7 @@
           </label>
 
           <label class="field span2">
-            <span class="field__label">Image URL (optional)</span>
+            <span class="field__label">Image URL (recommended)</span>
             <input id="pImageUrl" type="url" placeholder="https://i.pinimg.com/...jpg" />
             <span class="field__hint">If you don't upload a photo, use a direct image URL (i.pinimg.com) so the card shows the photo.</span>
           </label>
