@@ -223,18 +223,25 @@ h1{
 }
 .card:hover{transform: translateY(-2px); background: rgba(255,255,255,.06);}
 
+/* ✅ PINS VERTICALI (Pinterest) */
 .card__media{
   position:relative;
   display:block;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 2 / 3;            /* ✅ verticale Pinterest */
   background: rgba(0,0,0,.28);
 }
+
+/* ✅ NON TAGLIARE PIÙ LE FOTO */
 .card__img{
-  width:100%; height:100%;
-  object-fit: cover;
+  width:100%;
+  height:100%;
+  object-fit: contain;             /* ✅ niente “mozzato” */
+  object-position: center;
   display:block;
+  background: rgba(0,0,0,.22);     /* bande eleganti se serve */
   filter: saturate(1.05) contrast(1.02);
 }
+
 .badge{
   position:absolute;
   left: 10px;
@@ -271,37 +278,11 @@ h1{
   font-size: 12px;
 }
 
-/* ✅ NOTE DEL PRODOTTO (Short Notes) */
-.card__note{
-  margin-top: 10px;
-  padding: 10px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.22);
-  color: rgba(255,255,255,.86);
-  font-size: 13px;
-  line-height: 1.35;
-  overflow: hidden;
-
-  /* taglio elegante su 3 righe (mobile friendly) */
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-.card__note:empty{display:none}
-
-/* se vuoi mostrare tutto al tap, usa .is-open dal JS */
-.card__note.is-open{
-  -webkit-line-clamp: unset;
-  display: block;
-}
-
 .card__actions{
   margin-top: 10px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap: 8px;
 }
 .link{
   font-size: 13px;
@@ -318,10 +299,6 @@ h1{
 .link--muted{
   color: rgba(255,255,255,.75);
   border-style: dashed;
-}
-.link.is-disabled{
-  opacity: .55;
-  pointer-events: none;
 }
 
 .footer{
@@ -452,7 +429,6 @@ h1{
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
-/* rende la riga dei bottoni sempre visibile in basso mentre scorri */
 .modal__body .row{
   position: sticky;
   bottom: 0;
@@ -465,7 +441,6 @@ h1{
   border-top: 1px solid rgba(255,255,255,0.10);
 }
 
-/* su mobile meglio bottoni a colonna e larghi */
 @media (max-width: 560px){
   .modal__body .row{
     display: grid;
@@ -474,48 +449,4 @@ h1{
   .modal__body .row .btn{
     width: 100%;
   }
-}
-
-/* --------- CARD NOTES (toggle) --------- */
-.card__notes{
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.card__notesBtn{
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.03);
-  color: rgba(255,255,255,.86);
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-  justify-self: start;
-}
-.card__notesBtn:hover{
-  background: rgba(255,255,255,.07);
-}
-
-.card__notesBox{
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px dashed rgba(255,255,255,.14);
-  background: rgba(0,0,0,.18);
-  color: rgba(255,255,255,.78);
-  font-size: 13px;
-  line-height: 1.35;
-
-  /* chiuso: massimo 3 righe */
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.card__notes.is-open .card__notesBox{
-  /* aperto: tutto */
-  -webkit-line-clamp: unset;
-  overflow: visible;
 }
