@@ -223,20 +223,22 @@ h1{
 }
 .card:hover{transform: translateY(-2px); background: rgba(255,255,255,.06);}
 
-/* ✅ Pinterest vertical friendly: no crop */
+/* --------- IMAGE FIX (Pinterest vertical not cropped) --------- */
 .card__media{
   position:relative;
   display:block;
-  aspect-ratio: 2 / 3;              /* verticale */
-  background: linear-gradient(135deg, rgba(230,201,168,.12), rgba(167,197,255,.08));
+  /* Pinterest images are often vertical */
+  aspect-ratio: 2 / 3;
+  background: rgba(0,0,0,.28);
 }
 .card__img{
   width:100%; height:100%;
-  object-fit: contain;               /* ✅ NON taglia */
-  background: rgba(0,0,0,.22);       /* “cornice” elegante */
+  /* show full image (no crop) */
+  object-fit: contain;
   display:block;
+  /* subtle improvement: keep edges clean */
+  filter: saturate(1.05) contrast(1.02);
 }
-
 .badge{
   position:absolute;
   left: 10px;
@@ -259,6 +261,36 @@ h1{
   letter-spacing: -.2px;
 }
 
+/* Notes toggle */
+.card__noteToggleRow{
+  margin-top: 10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.noteToggle{
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.90);
+  cursor:pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.noteToggle:hover{background: rgba(255,255,255,.08);}
+.card__notes{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.20);
+  color: rgba(255,255,255,.86);
+  font-size: 13.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .card__tags{
   margin-top: 10px;
   display:flex;
@@ -275,12 +307,11 @@ h1{
 }
 
 .card__actions{
-  margin-top: 12px;
+  margin-top: 10px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-
 .link{
   font-size: 13px;
   font-weight: 700;
@@ -291,31 +322,11 @@ h1{
   background: rgba(255,255,255,.04);
   display:inline-flex;
   align-items:center;
-  cursor:pointer;
 }
 .link:hover{background: rgba(255,255,255,.08);}
 .link--muted{
   color: rgba(255,255,255,.75);
   border-style: dashed;
-}
-
-/* ✅ Notes toggle */
-.notesBtn{
-  margin-top: 10px;
-  width: fit-content;
-}
-.notesBox{
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px dashed rgba(255,255,255,.16);
-  background: rgba(0,0,0,.22);
-}
-.notesText{
-  color: rgba(255,255,255,.86);
-  font-size: 13px;
-  line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 .footer{
@@ -356,9 +367,6 @@ h1{
   background: rgba(16,18,30,.92);
   box-shadow: var(--shadow);
   overflow:hidden;
-  max-height: calc(100vh - 24px);
-  display: flex;
-  flex-direction: column;
 }
 .modal__panel--wide{
   width:min(860px, calc(100% - 24px));
@@ -386,9 +394,6 @@ h1{
 .iconbtn:hover{ background: rgba(255,255,255,.10); }
 .modal__body{
   padding: 14px 14px 16px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 .muted{ color: rgba(255,255,255,.70); margin: 0 0 12px; font-size: 13px; }
 
@@ -415,29 +420,6 @@ h1{
   margin-top: 12px;
 }
 
-/* sticky buttons row in modal */
-.modal__body .row{
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
-  margin-top: 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(10, 12, 18, 0.78);
-  border-top: 1px solid rgba(255,255,255,0.10);
-}
-
-@media (max-width: 560px){
-  .modal__body .row{
-    display: grid;
-    gap: 10px;
-  }
-  .modal__body .row .btn{
-    width: 100%;
-  }
-}
-
 .note{
   margin-top: 12px;
   padding: 10px 12px;
@@ -462,6 +444,38 @@ h1{
   .modal__panel{ margin: 20px auto; }
 }
 
-/* ---- ADMIN LOCK ---- */
-.admin-only{ display:none; }
-body.is-admin .admin-only{ display:inline-flex; }
+/* ---------- MOBILE FIX: modal actions always visible ---------- */
+.modal__panel{
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal__body{
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* sticky buttons row */
+.modal__body .row{
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  margin-top: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(10, 12, 18, 0.78);
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+@media (max-width: 560px){
+  .modal__body .row{
+    display: grid;
+    gap: 10px;
+  }
+  .modal__body .row .btn{
+    width: 100%;
+  }
+}
