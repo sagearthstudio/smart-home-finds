@@ -152,10 +152,6 @@
         };
   }
 
-  function isGithubPagesProject() {
-    return location.hostname.endsWith('.github.io') && !!repo;
-  }
-
   function githubRepoUrl() {
     return `https://github.com/${owner}/${repo}`;
   }
@@ -167,12 +163,17 @@
   // Parse issue body from the issue-form template or from webapp-created markdown
   function parseIssueBody(body) {
     const text = (body || '').replace(/\r/g, '');
+
     const getField = (label) => {
+      // matches:
+      // Label
+      // value
       const re = new RegExp(`^\\s*${label}\\s*\\n+([^\\n]+)`, 'im');
       const m = text.match(re);
       return m ? m[1].trim() : '';
     };
 
+    // also accept "Label:" on same line
     const getFieldInline = (label) => {
       const re = new RegExp(`^\\s*${label}\\s*:\\s*([^\\n]+)`, 'im');
       const m = text.match(re);
@@ -223,6 +224,7 @@
     const pinUrl = parsed.pinUrl || '';
     const destUrl = parsed.destUrl || '';
     const imageUrl = parsed.imageUrl || '';
+    const notes = parsed.notes && parsed.notes !== 'No response' ? parsed.notes : '';
 
     return {
       id: issue.number,
@@ -234,7 +236,7 @@
       pinUrl,
       destUrl,
       imageUrl,
-      notes: parsed.notes && parsed.notes !== 'No response' ? parsed.notes : '',
+      notes,
     };
   }
 
@@ -260,8 +262,45 @@
     const catOk = activeCategory === 'All' || (p.category || '').toLowerCase() === activeCategory.toLowerCase();
     const q = searchQuery.trim().toLowerCase();
     if (!q) return catOk;
+
+    // include notes in search ✅
     const hay = `${p.title} ${p.category} ${(p.tags || []).join(' ')} ${p.notes || ''}`.toLowerCase();
     return catOk && hay.includes(q);
+  }
+
+  function makeNotesElement(notesText) {
+    const txt = (notesText || '').trim();
+    if (!txt) return null;
+
+    const p = document.createElement('p');
+    p.className = 'card__note';
+    p.textContent = txt;
+    p.setAttribute('role', 'button');
+    p.setAttribute('tabindex', '0');
+    p.setAttribute('aria-expanded', 'false');
+    p.title = 'Tap to expand / collapse';
+
+    const toggle = () => {
+      const open = p.classList.toggle('is-open');
+      p.setAttribute('aria-expanded', String(open));
+    };
+
+    // tap/click toggle
+    p.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    });
+
+    // keyboard toggle (Enter / Space)
+    p.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
+
+    return p;
   }
 
   function renderProducts() {
@@ -322,20 +361,10 @@
         tagsWrap.appendChild(s);
       });
 
-      // ✅ Short Notes (FIX): show notes on the card
-      if (p.notes && body) {
-        const noteEl = document.createElement('p');
-        noteEl.className = 'card__note';
-        noteEl.textContent = p.notes;
-
-        // fallback inline style (so it works even if you don't add CSS)
-        noteEl.style.margin = '10px 0 0';
-        noteEl.style.fontSize = '12.5px';
-        noteEl.style.lineHeight = '1.45';
-        noteEl.style.color = 'rgba(255,255,255,.78)';
-        noteEl.style.whiteSpace = 'pre-line';
-
-        body.appendChild(noteEl);
+      // ✅ Short Notes (with expand/collapse)
+      if (body) {
+        const noteEl = makeNotesElement(p.notes);
+        if (noteEl) body.appendChild(noteEl);
       }
 
       frag.appendChild(node);
@@ -550,6 +579,7 @@
         els.pCategory.appendChild(opt);
       });
 
+      // Default values
       els.pTitle.value = '';
       els.pPinUrl.value = '';
       els.pDestUrl.value = '';
@@ -609,6 +639,7 @@
         let imageUrl = normalizeUrl(els.pImageUrl.value);
         const file = els.pImageFile?.files?.[0];
 
+        // If user selected a file, upload it to the repo and use that URL
         if (file) {
           setNote(els.productStatus, 'Uploading image to GitHub…', '');
           imageUrl = await uploadImageToRepo(file);
@@ -627,12 +658,14 @@
         setNote(els.productStatus, 'Creating GitHub issue…', '');
         const issue = await createProductIssue(product);
 
+        // Immediately show it on the page
         const newProd = productFromIssue(issue);
         allProducts = [newProd, ...allProducts];
         renderProducts();
 
         setNote(els.productStatus, '✅ Published! It is now visible on the webapp.', 'ok');
 
+        // Close after a short delay (better UX on mobile)
         await sleep(650);
         closeModal('product');
       } catch (e) {
@@ -672,6 +705,7 @@
   async function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     try {
+      // Important: for project sites, this must be relative
       await navigator.serviceWorker.register('./sw.js', { scope: './' });
     } catch {
       // ignore
