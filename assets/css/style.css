@@ -271,11 +271,37 @@ h1{
   font-size: 12px;
 }
 
+/* ✅ NOTE DEL PRODOTTO (Short Notes) */
+.card__note{
+  margin-top: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.22);
+  color: rgba(255,255,255,.86);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow: hidden;
+
+  /* taglio elegante su 3 righe (mobile friendly) */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.card__note:empty{display:none}
+
+/* se vuoi mostrare tutto al tap, usa .is-open dal JS */
+.card__note.is-open{
+  -webkit-line-clamp: unset;
+  display: block;
+}
+
 .card__actions{
   margin-top: 10px;
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap: 8px;
 }
 .link{
   font-size: 13px;
@@ -292,6 +318,10 @@ h1{
 .link--muted{
   color: rgba(255,255,255,.75);
   border-style: dashed;
+}
+.link.is-disabled{
+  opacity: .55;
+  pointer-events: none;
 }
 
 .footer{
@@ -419,11 +449,10 @@ h1{
 .modal__body{
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* extra space so buttons don't hide behind browser bar / keyboard */
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
-/* keep action row visible while scrolling */
+/* rende la riga dei bottoni sempre visibile in basso mentre scorri */
 .modal__body .row{
   position: sticky;
   bottom: 0;
@@ -436,6 +465,7 @@ h1{
   border-top: 1px solid rgba(255,255,255,0.10);
 }
 
+/* su mobile meglio bottoni a colonna e larghi */
 @media (max-width: 560px){
   .modal__body .row{
     display: grid;
