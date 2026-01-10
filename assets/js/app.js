@@ -336,6 +336,7 @@
       const title = node.querySelector('.card__title');
       const tags = node.querySelector('.card__tags');
       const linkOpen = node.querySelectorAll('.link')[0];
+      const linkShop = node.querySelectorAll('.link')[1];
       const linkPin = node.querySelectorAll('.link')[1];
       const noteBtn = node.querySelector('.noteToggle');
       const noteBox = node.querySelector('.card__notes');
@@ -358,26 +359,31 @@
       const primaryUrl = p.destUrl || p.pinUrl || p.issueUrl;
       media.href = primaryUrl;
 
-      // Actions
-      linkOpen.href = primaryUrl;
-      linkPin.href = p.pinUrl || p.issueUrl;
-      linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
+      // Media click: goes to Shop if available, otherwise to Pin
+      const primaryUrl = p.destUrl || p.pinUrl || p.issueUrl;
+      media.href = primaryUrl;
 
-      // Notes toggle
-      if (p.notes && p.notes.trim()) {
-        noteBtn.hidden = false;
-        noteBtn.textContent = 'Short Notes';
-        noteBtn.setAttribute('aria-expanded', 'false');
-        noteBox.hidden = true;
-        noteBox.textContent = p.notes.trim();
+     // Open: prefer Pin (to see the pin), fallback to issue
+     linkOpen.href = p.pinUrl || p.issueUrl;
+     linkOpen.textContent = 'Open';
 
-        noteBtn.addEventListener('click', () => {
-          const isOpen = noteBtn.getAttribute('aria-expanded') === 'true';
-          noteBtn.setAttribute('aria-expanded', String(!isOpen));
-          noteBtn.textContent = isOpen ? 'Short Notes' : 'Chiudi note';
-          noteBox.hidden = isOpen;
-        });
-      } else {
+     // Shop: direct affiliate link (destUrl). If missing, disable it.
+     if (p.destUrl) {
+     linkShop.href = p.destUrl;
+     linkShop.textContent = 'Shop';
+     linkShop.style.opacity = '1';
+     linkShop.style.pointerEvents = 'auto';
+   } else {
+     linkShop.href = p.pinUrl || p.issueUrl;
+     linkShop.textContent = 'Shop';
+     linkShop.style.opacity = '.55';
+     linkShop.style.pointerEvents = 'none';
+  }
+
+  // Pin button
+     linkPin.href = p.pinUrl || p.issueUrl;
+     linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
+
         noteBtn.hidden = true;
         noteBox.hidden = true;
       }
