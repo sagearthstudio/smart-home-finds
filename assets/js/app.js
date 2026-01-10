@@ -1,10 +1,9 @@
 /* Smart Home Finds — app.js
    - Reads products from GitHub Issues (label: "product")
-   - Adds products by creating a new Issue (needs token)
-   - Optional image upload: commits file into /uploads and uses raw GitHub URL (needs Contents R/W)
-   - Notes: parse multi-line "Short Notes" and show toggle per card
-   - Admin UI: hidden unless Admin PIN is enabled (PIN is only UI gating; token is the real security)
+   - Adds products by creating a new Issue
+   - Optional image upload: commits the selected file into /uploads and uses the raw GitHub URL
    - PWA: registers ./sw.js
+   - Admin mode: shows Token + Add Product buttons (UI-only). Real security = GitHub token perms.
 */
 
 (() => {
@@ -22,7 +21,6 @@
 
     btnPinterest: $('btnPinterest'),
     btnInstagram: $('btnInstagram'),
-    btnLinktree: $('btnLinktree'),
 
     searchInput: $('searchInput'),
     categoryChips: $('categoryChips'),
@@ -76,8 +74,11 @@
   const LINKS = {
     pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
     instagram: 'https://www.instagram.com/sagearthstudio/',
-    linkShop: 'https://sagearthstudio.github.io/smart-home-finds/',
   };
+
+  // Admin PIN (UI-only gate)
+  // Puoi cambiarlo quando vuoi:
+  const ADMIN_PIN = 'Serena05';
 
   // Categories for UI
   const CATEGORIES = [
@@ -100,14 +101,10 @@
   const LS_TOKEN = 'shf_github_token';
   const LS_ADMIN = 'shf_admin_enabled';
 
-  // Admin PIN (UI gating only)
-  const ADMIN_PIN = 'Serena05';
-
   // ---------- State ----------
   let allProducts = [];
   let activeCategory = 'All';
   let searchQuery = '';
-  let adminEnabled = localStorage.getItem(LS_ADMIN) === '1';
 
   // ---------- Helpers ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -174,63 +171,39 @@
     return `${githubRepoUrl()}/issues/new?template=add-product.yml`;
   }
 
-  // ---------- Robust parser for issue body (supports multi-line notes) ----------
+  function isAdminEnabled() {
+    return localStorage.getItem(LS_ADMIN) === '1';
+  }
+
+  function applyAdminUI() {
+    const on = isAdminEnabled();
+    if (els.btnToken) els.btnToken.hidden = !on;
+    if (els.btnAddProduct) els.btnAddProduct.hidden = !on;
+  }
+
+  // Parse issue body from the issue-form template or from webapp-created markdown
   function parseIssueBody(body) {
     const text = (body || '').replace(/\r/g, '');
 
-    // Recognized labels in the body (must match how we generate it)
-    const LABELS = [
-      'Pinterest Pin URL',
-      'Destination / Affiliate URL',
-      'Image URL',
-      'Title',
-      'Category',
-      'Tags',
-      'Short Notes',
-    ];
+    const getField = (label) => {
+      const re = new RegExp(`^\\s*${label}\\s*\\n+([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? m[1].trim() : '';
+    };
 
-    const map = {};
-    let current = null;
-    const lines = text.split('\n');
+    const getFieldInline = (label) => {
+      const re = new RegExp(`^\\s*${label}\\s*:\\s*([^\\n]+)`, 'im');
+      const m = text.match(re);
+      return m ? m[1].trim() : '';
+    };
 
-    const isLabelLine = (line) => LABELS.includes((line || '').trim());
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Support inline "Label: value"
-      const inline = line.match(/^\s*([^:]+?)\s*:\s*(.+)\s*$/);
-      if (inline && LABELS.includes(inline[1].trim())) {
-        map[inline[1].trim()] = (map[inline[1].trim()] ? map[inline[1].trim()] + '\n' : '') + inline[2].trim();
-        current = null;
-        continue;
-      }
-
-      if (isLabelLine(line)) {
-        current = line.trim();
-        if (!map[current]) map[current] = '';
-        continue;
-      }
-
-      if (current) {
-        // stop if another label appears
-        if (isLabelLine(line)) {
-          current = line.trim();
-          if (!map[current]) map[current] = '';
-          continue;
-        }
-
-        // collect lines (including blanks)
-        map[current] += (map[current] ? '\n' : '') + line;
-      }
-    }
-
-    const pinUrl = normalizeUrl((map['Pinterest Pin URL'] || '').trim());
-    const destUrl = normalizeUrl((map['Destination / Affiliate URL'] || '').trim());
-    const imageUrl = normalizeUrl((map['Image URL'] || '').trim());
-    const title = (map['Title'] || '').trim();
-    const category = (map['Category'] || '').trim();
-    const tags = (map['Tags'] || '').trim();
-    const notes = (map['Short Notes'] || '').trim();
+    const pinUrl = normalizeUrl(getField('Pinterest Pin URL') || getFieldInline('Pinterest Pin URL'));
+    const destUrl = normalizeUrl(getField('Destination / Affiliate URL') || getFieldInline('Destination / Affiliate URL'));
+    const imageUrl = normalizeUrl(getField('Image URL') || getFieldInline('Image URL'));
+    const title = (getField('Title') || getFieldInline('Title')).trim();
+    const category = (getField('Category') || getFieldInline('Category')).trim();
+    const tags = (getField('Tags') || getFieldInline('Tags')).trim();
+    const notes = (getField('Short Notes') || getFieldInline('Short Notes')).trim();
 
     // If users paste an image upload markdown like: ![alt](https://user-images.githubusercontent.com/...)
     const uploadImgMatch = text.match(/!\[[^\]]*]\((https?:\/\/[^)]+)\)/i);
@@ -249,10 +222,12 @@
 
   function productFromIssue(issue) {
     const parsed = parseIssueBody(issue.body || '');
+
     const title =
       (parsed.title && parsed.title !== 'No response' ? parsed.title : '') ||
       (issue.title || '').replace(/^Add\s+product\s*:\s*/i, '').trim();
 
+    // Category: prefer parsed, else from labels
     let category = parsed.category && parsed.category !== 'No response' ? parsed.category : '';
     if (!category) {
       const labelNames = (issue.labels || []).map((l) => (typeof l === 'string' ? l : l.name)).filter(Boolean);
@@ -277,17 +252,6 @@
   }
 
   // ---------- UI ----------
-  function setAdminUI(enabled) {
-    adminEnabled = !!enabled;
-    if (els.btnToken) els.btnToken.hidden = !adminEnabled;
-    if (els.btnAddProduct) els.btnAddProduct.hidden = !adminEnabled;
-
-    if (els.btnAdmin) {
-      els.btnAdmin.textContent = adminEnabled ? '🔓 Admin' : '🔒 Admin';
-      els.btnAdmin.title = adminEnabled ? 'Admin attivo' : 'Modalità admin';
-    }
-  }
-
   function renderChips() {
     if (!els.categoryChips) return;
     els.categoryChips.innerHTML = '';
@@ -306,9 +270,13 @@
   }
 
   function matchesFilters(p) {
-    const catOk = activeCategory === 'All' || (p.category || '').toLowerCase() === activeCategory.toLowerCase();
+    const catOk =
+      activeCategory === 'All' ||
+      (p.category || '').toLowerCase() === activeCategory.toLowerCase();
+
     const q = searchQuery.trim().toLowerCase();
     if (!q) return catOk;
+
     const hay = `${p.title} ${p.category} ${(p.tags || []).join(' ')} ${p.notes || ''}`.toLowerCase();
     return catOk && hay.includes(q);
   }
@@ -318,15 +286,17 @@
     els.productGrid.innerHTML = '';
 
     const items = allProducts.filter(matchesFilters);
+
     if (!items.length) {
       const empty = document.createElement('div');
       empty.className = 'note';
-      empty.textContent = 'Nessun prodotto trovato. Premi Refresh o cambia filtri.';
+      empty.textContent = 'Nessun prodotto trovato. Premi Refresh o rimuovi i filtri.';
       els.productGrid.appendChild(empty);
       return;
     }
 
     const frag = document.createDocumentFragment();
+
     for (const p of items) {
       const node = els.cardTemplate.content.cloneNode(true);
 
@@ -335,16 +305,20 @@
       const badge = node.querySelector('.badge');
       const title = node.querySelector('.card__title');
       const tags = node.querySelector('.card__tags');
-      const linkOpen = node.querySelectorAll('.link')[0];
-      const linkShop = node.querySelectorAll('.link')[1];
-      const linkPin = node.querySelectorAll('.link')[1];
-      const noteBtn = node.querySelector('.noteToggle');
-      const noteBox = node.querySelector('.card__notes');
+
+      const noteToggle = node.querySelector('.noteToggle');
+      const notesBox = node.querySelector('.card__notes');
+
+      // IMPORTANT: Your HTML order is: Open (0), Pin (1), Shop (2)
+      const links = node.querySelectorAll('.link');
+      const linkOpen = links[0];
+      const linkPin = links[1];
+      const linkShop = links[2];
 
       title.textContent = p.title;
       badge.textContent = p.category || 'Product';
 
-      // Image (not cropped: CSS uses object-fit: contain)
+      // Image
       if (p.imageUrl) {
         img.src = p.imageUrl;
         img.alt = p.title;
@@ -355,50 +329,64 @@
         media.style.background = 'linear-gradient(135deg, rgba(230,201,168,.18), rgba(167,197,255,.10))';
       }
 
-      // Primary link: destination preferred, else pin, else issue
+      // Media click -> go to Shop if available, else Pin, else Issue
       const primaryUrl = p.destUrl || p.pinUrl || p.issueUrl;
       media.href = primaryUrl;
 
-      // Media click: goes to Shop if available, otherwise to Pin
-      const primaryUrl = p.destUrl || p.pinUrl || p.issueUrl;
-      media.href = primaryUrl;
+      // Open: open Pin (or issue)
+      linkOpen.href = p.pinUrl || p.issueUrl;
+      linkOpen.textContent = 'Open';
 
-     // Open: prefer Pin (to see the pin), fallback to issue
-     linkOpen.href = p.pinUrl || p.issueUrl;
-     linkOpen.textContent = 'Open';
+      // Pin button
+      linkPin.href = p.pinUrl || p.issueUrl;
+      linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
 
-     // Shop: direct affiliate link (destUrl). If missing, disable it.
-     if (p.destUrl) {
-     linkShop.href = p.destUrl;
-     linkShop.textContent = 'Shop';
-     linkShop.style.opacity = '1';
-     linkShop.style.pointerEvents = 'auto';
-   } else {
-     linkShop.href = p.pinUrl || p.issueUrl;
-     linkShop.textContent = 'Shop';
-     linkShop.style.opacity = '.55';
-     linkShop.style.pointerEvents = 'none';
-  }
-
-  // Pin button
-     linkPin.href = p.pinUrl || p.issueUrl;
-     linkPin.textContent = p.pinUrl ? 'Pin' : 'Issue';
-
-        noteBtn.hidden = true;
-        noteBox.hidden = true;
+      // Shop: direct affiliate link
+      if (p.destUrl) {
+        linkShop.href = p.destUrl;
+        linkShop.textContent = 'Shop';
+        linkShop.style.opacity = '1';
+        linkShop.style.pointerEvents = 'auto';
+      } else {
+        linkShop.href = '#';
+        linkShop.textContent = 'Shop';
+        linkShop.style.opacity = '.55';
+        linkShop.style.pointerEvents = 'none';
       }
 
       // Tags
       tags.innerHTML = '';
-      (p.tags || []).slice(0, 8).forEach((t) => {
+      (p.tags || []).slice(0, 6).forEach((t) => {
         const s = document.createElement('span');
         s.className = 'tag';
         s.textContent = t;
         tags.appendChild(s);
       });
 
+      // Notes toggle
+      if (noteToggle && notesBox) {
+        const hasNotes = !!(p.notes || '').trim();
+        if (hasNotes) {
+          noteToggle.hidden = false;
+          noteToggle.textContent = 'Note';
+          noteToggle.setAttribute('aria-expanded', 'false');
+          notesBox.hidden = true;
+          notesBox.textContent = p.notes;
+
+          noteToggle.addEventListener('click', () => {
+            const isOpen = noteToggle.getAttribute('aria-expanded') === 'true';
+            noteToggle.setAttribute('aria-expanded', String(!isOpen));
+            notesBox.hidden = isOpen;
+          });
+        } else {
+          noteToggle.hidden = true;
+          notesBox.hidden = true;
+        }
+      }
+
       frag.appendChild(node);
     }
+
     els.productGrid.appendChild(frag);
   }
 
@@ -409,6 +397,7 @@
       which === 'product' ? els.productModal :
       which === 'admin' ? els.adminModal :
       null;
+
     if (!el) return;
     el.hidden = false;
     el.setAttribute('aria-hidden', 'false');
@@ -421,6 +410,7 @@
       which === 'product' ? els.productModal :
       which === 'admin' ? els.adminModal :
       null;
+
     if (!el) return;
     el.hidden = true;
     el.setAttribute('aria-hidden', 'true');
@@ -431,7 +421,9 @@
     document.querySelectorAll('[data-close]').forEach((x) => {
       x.addEventListener('click', (e) => {
         const which = e.currentTarget.getAttribute('data-close');
-        closeModal(which);
+        if (which === 'token') closeModal('token');
+        if (which === 'product') closeModal('product');
+        if (which === 'admin') closeModal('admin');
       });
     });
 
@@ -459,8 +451,10 @@
       try {
         const j = await res.json();
         detail = j && (j.message || JSON.stringify(j));
-      } catch { /* ignore */ }
-      const err = new Error(`GitHub API error: ${res.status} — ${detail || res.statusText}`);
+      } catch {
+        // ignore
+      }
+      const err = new Error(`GitHub API error: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ''}`);
       err.status = res.status;
       throw err;
     }
@@ -484,12 +478,16 @@
 
   async function fetchProductsFromIssues() {
     if (!owner || !repo) {
-      setStatus('Questo sito è pensato per GitHub Pages (username.github.io/repo).');
+      setStatus('Questo sito è pensato per GitHub Pages: username.github.io/repo');
       return [];
     }
 
-    setStatus('Carico i prodotti da GitHub Issues…');
-    const url = `https://api.github.com/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(PRODUCT_LABEL)}&state=open&per_page=100&sort=created&direction=desc`;
+    setStatus('Carico prodotti dalle GitHub Issues…');
+
+    const url =
+      `https://api.github.com/repos/${owner}/${repo}/issues` +
+      `?labels=${encodeURIComponent(PRODUCT_LABEL)}` +
+      `&state=open&per_page=100&sort=created&direction=desc`;
 
     try {
       const issues = await ghFetch(url);
@@ -501,7 +499,7 @@
       return products;
     } catch (e) {
       if (e.status === 403) {
-        setStatus('Rate limit GitHub. Premi “Admin → Token” e inserisci un token (read-only basta per caricare).');
+        setStatus('Rate limit GitHub. Attiva Admin → Token e inserisci un token (read è sufficiente per caricare).');
       } else {
         setStatus(`Errore caricamento: ${e.message}`);
       }
@@ -512,7 +510,7 @@
   async function createProductIssue(product) {
     const t = getToken();
     if (!t) {
-      throw new Error('Nessun token salvato. Vai su Admin → Token e incolla un token con Issues: Read and write.');
+      throw new Error('Nessun token salvato. Attiva Admin → Token e incolla un token con Issues: Read and write.');
     }
 
     const title = (product.title || '').trim() || 'New product';
@@ -558,7 +556,7 @@
   async function uploadImageToRepo(file) {
     const t = getToken();
     if (!t) {
-      throw new Error('Nessun token salvato. Per caricare una foto serve token con Contents: Read and write.');
+      throw new Error('Nessun token salvato. Per upload foto serve token con Contents: Read and write.');
     }
 
     const arrayBuf = await file.arrayBuffer();
@@ -591,7 +589,6 @@
   function wireHeaderLinks() {
     if (els.btnPinterest) els.btnPinterest.href = LINKS.pinterest;
     if (els.btnInstagram) els.btnInstagram.href = LINKS.instagram;
-    if (els.btnLinktree) els.btnLinktree.href = LINKS.linktree;
   }
 
   function wireToolbar() {
@@ -600,39 +597,47 @@
     });
 
     els.btnAdmin?.addEventListener('click', () => {
-      els.adminPinInput.value = '';
-      setNote(els.adminStatus, adminEnabled ? 'Admin attivo su questo dispositivo.' : 'Admin non attivo.', adminEnabled ? 'ok' : '');
+      setNote(
+        els.adminStatus,
+        isAdminEnabled()
+          ? '✅ Admin attivo su questo browser.'
+          : 'Admin disattivo. Inserisci il PIN per abilitare.',
+        isAdminEnabled() ? 'ok' : ''
+      );
+      if (els.adminPinInput) els.adminPinInput.value = '';
       openModal('admin');
     });
 
     els.btnToken?.addEventListener('click', () => {
       const t = getToken();
-      els.tokenInput.value = t ? t : '';
+      if (els.tokenInput) els.tokenInput.value = t ? t : '';
       setNote(els.tokenStatus, t ? 'Token caricato da questo browser.' : 'Nessun token salvato.', t ? 'ok' : '');
       openModal('token');
     });
 
     els.btnAddProduct?.addEventListener('click', () => {
-      // Fill categories in select
-      els.pCategory.innerHTML = '';
-      CATEGORIES.filter((c) => c !== 'All').forEach((c) => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        els.pCategory.appendChild(opt);
-      });
+      // Fill categories
+      if (els.pCategory) {
+        els.pCategory.innerHTML = '';
+        CATEGORIES.filter((c) => c !== 'All').forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          els.pCategory.appendChild(opt);
+        });
+      }
 
-      // Default values
-      els.pTitle.value = '';
-      els.pPinUrl.value = '';
-      els.pDestUrl.value = '';
-      els.pImageUrl.value = '';
+      // Defaults
+      if (els.pTitle) els.pTitle.value = '';
+      if (els.pPinUrl) els.pPinUrl.value = '';
+      if (els.pDestUrl) els.pDestUrl.value = '';
+      if (els.pImageUrl) els.pImageUrl.value = '';
       if (els.pImageFile) els.pImageFile.value = '';
-      els.pTags.value = '';
-      els.pNotes.value = '';
+      if (els.pTags) els.pTags.value = '';
+      if (els.pNotes) els.pNotes.value = '';
       setNote(els.productStatus, '', '');
 
-      els.btnFallbackGitHub.href = githubIssueNewUrl();
+      if (els.btnFallbackGitHub) els.btnFallbackGitHub.href = githubIssueNewUrl();
       openModal('product');
     });
 
@@ -652,9 +657,9 @@
 
   function wireAdminModal() {
     els.btnEnableAdmin?.addEventListener('click', () => {
-      const pin = (els.adminPinInput.value || '').trim();
+      const pin = (els.adminPinInput?.value || '').trim();
       if (!pin) {
-        setNote(els.adminStatus, 'Inserisci il PIN.', 'bad');
+        setNote(els.adminStatus, 'Inserisci un PIN.', 'bad');
         return;
       }
       if (pin !== ADMIN_PIN) {
@@ -662,22 +667,22 @@
         return;
       }
       localStorage.setItem(LS_ADMIN, '1');
-      setAdminUI(true);
-      setNote(els.adminStatus, '✅ Admin attivo su questo dispositivo.', 'ok');
+      applyAdminUI();
+      setNote(els.adminStatus, '✅ Admin abilitato su questo browser.', 'ok');
     });
 
     els.btnDisableAdmin?.addEventListener('click', () => {
       localStorage.removeItem(LS_ADMIN);
-      setAdminUI(false);
-      setNote(els.adminStatus, 'Admin disattivato.', 'ok');
+      applyAdminUI();
+      setNote(els.adminStatus, 'Admin disabilitato.', 'ok');
     });
   }
 
   function wireTokenModal() {
     els.btnSaveToken?.addEventListener('click', async () => {
-      const t = (els.tokenInput.value || '').trim();
+      const t = (els.tokenInput?.value || '').trim();
       if (!t) {
-        setNote(els.tokenStatus, 'Incolla un token prima.', 'bad');
+        setNote(els.tokenStatus, 'Incolla prima un token.', 'bad');
         return;
       }
       localStorage.setItem(LS_TOKEN, t);
@@ -686,7 +691,7 @@
 
     els.btnClearToken?.addEventListener('click', () => {
       localStorage.removeItem(LS_TOKEN);
-      els.tokenInput.value = '';
+      if (els.tokenInput) els.tokenInput.value = '';
       setNote(els.tokenStatus, 'Token rimosso da questo browser.', 'ok');
     });
   }
@@ -696,39 +701,39 @@
       try {
         setNote(els.productStatus, 'Pubblicazione…', '');
 
-        const pinUrl = normalizeUrl(els.pPinUrl.value);
+        const pinUrl = normalizeUrl(els.pPinUrl?.value);
         if (!pinUrl) {
           setNote(els.productStatus, 'Pinterest Pin URL è obbligatorio.', 'bad');
           return;
         }
 
-        let imageUrl = normalizeUrl(els.pImageUrl.value);
+        let imageUrl = normalizeUrl(els.pImageUrl?.value);
         const file = els.pImageFile?.files?.[0];
 
         if (file) {
-          setNote(els.productStatus, 'Carico immagine su GitHub…', '');
+          setNote(els.productStatus, 'Caricamento immagine su GitHub…', '');
           imageUrl = await uploadImageToRepo(file);
         }
 
         const product = {
-          title: (els.pTitle.value || '').trim(),
-          category: (els.pCategory.value || 'Accessories').trim(),
+          title: (els.pTitle?.value || '').trim(),
+          category: (els.pCategory?.value || 'Accessories').trim(),
           pinUrl,
-          destUrl: normalizeUrl(els.pDestUrl.value),
+          destUrl: normalizeUrl(els.pDestUrl?.value),
           imageUrl,
-          tags: splitTags(els.pTags.value),
-          notes: (els.pNotes.value || '').trim(),
+          tags: splitTags(els.pTags?.value),
+          notes: (els.pNotes?.value || '').trim(),
         };
 
-        setNote(els.productStatus, 'Creo la scheda su GitHub…', '');
+        setNote(els.productStatus, 'Creo la GitHub Issue…', '');
         const issue = await createProductIssue(product);
 
-        // Show immediately
         const newProd = productFromIssue(issue);
         allProducts = [newProd, ...allProducts];
         renderProducts();
 
         setNote(els.productStatus, '✅ Pubblicato! Ora è visibile nella webapp.', 'ok');
+
         await sleep(650);
         closeModal('product');
       } catch (e) {
@@ -739,7 +744,7 @@
 
   // ---------- Load ----------
   async function reloadProducts(showSpinner) {
-    if (showSpinner) setStatus('Aggiornamento…');
+    if (showSpinner) setStatus('Aggiorno…');
     const products = await fetchProductsFromIssues();
     allProducts = products;
     renderProducts();
@@ -754,6 +759,7 @@
   function init() {
     initMeta();
     wireHeaderLinks();
+    applyAdminUI();
     renderChips();
     wireToolbar();
     wireSearch();
@@ -761,12 +767,11 @@
     wireAdminModal();
     wireTokenModal();
     wireProductModal();
-    setAdminUI(adminEnabled);
     renderProducts();
     reloadProducts(false);
   }
 
-  // ---------- PWA ----------
+  // ---------- PWA (installable) ----------
   async function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     try {
