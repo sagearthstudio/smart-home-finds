@@ -75,7 +75,7 @@
   const LINKS = {
     pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
     instagram: 'https://www.instagram.com/sagearthstudio/',
-    tiktok: 'tiktok.com/@sageearth51'
+    tiktok: 'https://www.tiktok.com/@sageearth51'
   };
 
   // Admin PIN (UI-only gate)
