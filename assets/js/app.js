@@ -76,7 +76,7 @@
   const LINKS = {
     pinterest: 'https://it.pinterest.com/SmartlifeSmartIdeas/',
     instagram: 'https://www.instagram.com/sagearthstudio/',
-    linktree: 'https://linktr.ee/sagearthstudio',
+    linkShop: 'https://sagearthstudio.github.io/smart-home-finds/',
   };
 
   // Categories for UI
